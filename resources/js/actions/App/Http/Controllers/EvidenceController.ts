@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, applyUrlDefaults } from './../../../../wayfinder'
 /**
 * @see \App\Http\Controllers\EvidenceController::index
-* @see app/Http/Controllers/EvidenceController.php:20
+* @see app/Http/Controllers/EvidenceController.php:44
 * @route '/evidence'
 */
 export const index = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -16,7 +16,7 @@ index.definition = {
 
 /**
 * @see \App\Http\Controllers\EvidenceController::index
-* @see app/Http/Controllers/EvidenceController.php:20
+* @see app/Http/Controllers/EvidenceController.php:44
 * @route '/evidence'
 */
 index.url = (options?: RouteQueryOptions) => {
@@ -25,7 +25,7 @@ index.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\EvidenceController::index
-* @see app/Http/Controllers/EvidenceController.php:20
+* @see app/Http/Controllers/EvidenceController.php:44
 * @route '/evidence'
 */
 index.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -35,7 +35,7 @@ index.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\EvidenceController::index
-* @see app/Http/Controllers/EvidenceController.php:20
+* @see app/Http/Controllers/EvidenceController.php:44
 * @route '/evidence'
 */
 index.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -44,76 +44,86 @@ index.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 })
 
 /**
-* @see \App\Http\Controllers\EvidenceController::show
-* @see app/Http/Controllers/EvidenceController.php:77
-* @route '/evidence/{evidence}'
+* @see \App\Http\Controllers\EvidenceController::quickCreate
+* @see app/Http/Controllers/EvidenceController.php:89
+* @route '/evidence/quick-ingest'
 */
-export const show = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
-    url: show.url(args, options),
+export const quickCreate = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: quickCreate.url(options),
     method: 'get',
 })
 
-show.definition = {
+quickCreate.definition = {
     methods: ["get","head"],
-    url: '/evidence/{evidence}',
+    url: '/evidence/quick-ingest',
 } satisfies RouteDefinition<["get","head"]>
 
 /**
-* @see \App\Http\Controllers\EvidenceController::show
-* @see app/Http/Controllers/EvidenceController.php:77
-* @route '/evidence/{evidence}'
+* @see \App\Http\Controllers\EvidenceController::quickCreate
+* @see app/Http/Controllers/EvidenceController.php:89
+* @route '/evidence/quick-ingest'
 */
-show.url = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions) => {
-    if (typeof args === 'string' || typeof args === 'number') {
-        args = { evidence: args }
-    }
-
-    if (typeof args === 'object' && !Array.isArray(args) && 'evidence_number' in args) {
-        args = { evidence: args.evidence_number }
-    }
-
-    if (Array.isArray(args)) {
-        args = {
-            evidence: args[0],
-        }
-    }
-
-    args = applyUrlDefaults(args)
-
-    const parsedArgs = {
-        evidence: typeof args.evidence === 'object'
-        ? args.evidence.evidence_number
-        : args.evidence,
-    }
-
-    return show.definition.url
-            .replace('{evidence}', parsedArgs.evidence.toString())
-            .replace(/\/+$/, '') + queryParams(options)
+quickCreate.url = (options?: RouteQueryOptions) => {
+    return quickCreate.definition.url + queryParams(options)
 }
 
 /**
-* @see \App\Http\Controllers\EvidenceController::show
-* @see app/Http/Controllers/EvidenceController.php:77
-* @route '/evidence/{evidence}'
+* @see \App\Http\Controllers\EvidenceController::quickCreate
+* @see app/Http/Controllers/EvidenceController.php:89
+* @route '/evidence/quick-ingest'
 */
-show.get = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
-    url: show.url(args, options),
+quickCreate.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: quickCreate.url(options),
     method: 'get',
 })
 
 /**
-* @see \App\Http\Controllers\EvidenceController::show
-* @see app/Http/Controllers/EvidenceController.php:77
-* @route '/evidence/{evidence}'
+* @see \App\Http\Controllers\EvidenceController::quickCreate
+* @see app/Http/Controllers/EvidenceController.php:89
+* @route '/evidence/quick-ingest'
 */
-show.head = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
-    url: show.url(args, options),
+quickCreate.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
+    url: quickCreate.url(options),
     method: 'head',
 })
 
 /**
+* @see \App\Http\Controllers\EvidenceController::quickStore
+* @see app/Http/Controllers/EvidenceController.php:98
+* @route '/evidence/quick-ingest'
+*/
+export const quickStore = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: quickStore.url(options),
+    method: 'post',
+})
+
+quickStore.definition = {
+    methods: ["post"],
+    url: '/evidence/quick-ingest',
+} satisfies RouteDefinition<["post"]>
+
+/**
+* @see \App\Http\Controllers\EvidenceController::quickStore
+* @see app/Http/Controllers/EvidenceController.php:98
+* @route '/evidence/quick-ingest'
+*/
+quickStore.url = (options?: RouteQueryOptions) => {
+    return quickStore.definition.url + queryParams(options)
+}
+
+/**
+* @see \App\Http\Controllers\EvidenceController::quickStore
+* @see app/Http/Controllers/EvidenceController.php:98
+* @route '/evidence/quick-ingest'
+*/
+quickStore.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: quickStore.url(options),
+    method: 'post',
+})
+
+/**
 * @see \App\Http\Controllers\EvidenceController::create
-* @see app/Http/Controllers/EvidenceController.php:37
+* @see app/Http/Controllers/EvidenceController.php:115
 * @route '/cases/{caseFile}/evidence/create'
 */
 export const create = (args: { caseFile: string | { case_number: string } } | [caseFile: string | { case_number: string } ] | string | { case_number: string }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -128,7 +138,7 @@ create.definition = {
 
 /**
 * @see \App\Http\Controllers\EvidenceController::create
-* @see app/Http/Controllers/EvidenceController.php:37
+* @see app/Http/Controllers/EvidenceController.php:115
 * @route '/cases/{caseFile}/evidence/create'
 */
 create.url = (args: { caseFile: string | { case_number: string } } | [caseFile: string | { case_number: string } ] | string | { case_number: string }, options?: RouteQueryOptions) => {
@@ -161,7 +171,7 @@ create.url = (args: { caseFile: string | { case_number: string } } | [caseFile: 
 
 /**
 * @see \App\Http\Controllers\EvidenceController::create
-* @see app/Http/Controllers/EvidenceController.php:37
+* @see app/Http/Controllers/EvidenceController.php:115
 * @route '/cases/{caseFile}/evidence/create'
 */
 create.get = (args: { caseFile: string | { case_number: string } } | [caseFile: string | { case_number: string } ] | string | { case_number: string }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -171,7 +181,7 @@ create.get = (args: { caseFile: string | { case_number: string } } | [caseFile: 
 
 /**
 * @see \App\Http\Controllers\EvidenceController::create
-* @see app/Http/Controllers/EvidenceController.php:37
+* @see app/Http/Controllers/EvidenceController.php:115
 * @route '/cases/{caseFile}/evidence/create'
 */
 create.head = (args: { caseFile: string | { case_number: string } } | [caseFile: string | { case_number: string } ] | string | { case_number: string }, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -181,7 +191,7 @@ create.head = (args: { caseFile: string | { case_number: string } } | [caseFile:
 
 /**
 * @see \App\Http\Controllers\EvidenceController::store
-* @see app/Http/Controllers/EvidenceController.php:58
+* @see app/Http/Controllers/EvidenceController.php:136
 * @route '/cases/{caseFile}/evidence'
 */
 export const store = (args: { caseFile: string | { case_number: string } } | [caseFile: string | { case_number: string } ] | string | { case_number: string }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -196,7 +206,7 @@ store.definition = {
 
 /**
 * @see \App\Http\Controllers\EvidenceController::store
-* @see app/Http/Controllers/EvidenceController.php:58
+* @see app/Http/Controllers/EvidenceController.php:136
 * @route '/cases/{caseFile}/evidence'
 */
 store.url = (args: { caseFile: string | { case_number: string } } | [caseFile: string | { case_number: string } ] | string | { case_number: string }, options?: RouteQueryOptions) => {
@@ -229,7 +239,7 @@ store.url = (args: { caseFile: string | { case_number: string } } | [caseFile: s
 
 /**
 * @see \App\Http\Controllers\EvidenceController::store
-* @see app/Http/Controllers/EvidenceController.php:58
+* @see app/Http/Controllers/EvidenceController.php:136
 * @route '/cases/{caseFile}/evidence'
 */
 store.post = (args: { caseFile: string | { case_number: string } } | [caseFile: string | { case_number: string } ] | string | { case_number: string }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -237,6 +247,494 @@ store.post = (args: { caseFile: string | { case_number: string } } | [caseFile: 
     method: 'post',
 })
 
-const EvidenceController = { index, show, create, store }
+/**
+* @see \App\Http\Controllers\EvidenceController::completeIntake
+* @see app/Http/Controllers/EvidenceController.php:290
+* @route '/evidence/{evidence}/complete-intake'
+*/
+export const completeIntake = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
+    url: completeIntake.url(args, options),
+    method: 'patch',
+})
+
+completeIntake.definition = {
+    methods: ["patch"],
+    url: '/evidence/{evidence}/complete-intake',
+} satisfies RouteDefinition<["patch"]>
+
+/**
+* @see \App\Http\Controllers\EvidenceController::completeIntake
+* @see app/Http/Controllers/EvidenceController.php:290
+* @route '/evidence/{evidence}/complete-intake'
+*/
+completeIntake.url = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions) => {
+    if (typeof args === 'string' || typeof args === 'number') {
+        args = { evidence: args }
+    }
+
+    if (typeof args === 'object' && !Array.isArray(args) && 'evidence_number' in args) {
+        args = { evidence: args.evidence_number }
+    }
+
+    if (Array.isArray(args)) {
+        args = {
+            evidence: args[0],
+        }
+    }
+
+    args = applyUrlDefaults(args)
+
+    const parsedArgs = {
+        evidence: typeof args.evidence === 'object'
+        ? args.evidence.evidence_number
+        : args.evidence,
+    }
+
+    return completeIntake.definition.url
+            .replace('{evidence}', parsedArgs.evidence.toString())
+            .replace(/\/+$/, '') + queryParams(options)
+}
+
+/**
+* @see \App\Http\Controllers\EvidenceController::completeIntake
+* @see app/Http/Controllers/EvidenceController.php:290
+* @route '/evidence/{evidence}/complete-intake'
+*/
+completeIntake.patch = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
+    url: completeIntake.url(args, options),
+    method: 'patch',
+})
+
+/**
+* @see \App\Http\Controllers\EvidenceController::viewFile
+* @see app/Http/Controllers/EvidenceController.php:313
+* @route '/evidence/{evidence}/file'
+*/
+export const viewFile = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: viewFile.url(args, options),
+    method: 'get',
+})
+
+viewFile.definition = {
+    methods: ["get","head"],
+    url: '/evidence/{evidence}/file',
+} satisfies RouteDefinition<["get","head"]>
+
+/**
+* @see \App\Http\Controllers\EvidenceController::viewFile
+* @see app/Http/Controllers/EvidenceController.php:313
+* @route '/evidence/{evidence}/file'
+*/
+viewFile.url = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions) => {
+    if (typeof args === 'string' || typeof args === 'number') {
+        args = { evidence: args }
+    }
+
+    if (typeof args === 'object' && !Array.isArray(args) && 'evidence_number' in args) {
+        args = { evidence: args.evidence_number }
+    }
+
+    if (Array.isArray(args)) {
+        args = {
+            evidence: args[0],
+        }
+    }
+
+    args = applyUrlDefaults(args)
+
+    const parsedArgs = {
+        evidence: typeof args.evidence === 'object'
+        ? args.evidence.evidence_number
+        : args.evidence,
+    }
+
+    return viewFile.definition.url
+            .replace('{evidence}', parsedArgs.evidence.toString())
+            .replace(/\/+$/, '') + queryParams(options)
+}
+
+/**
+* @see \App\Http\Controllers\EvidenceController::viewFile
+* @see app/Http/Controllers/EvidenceController.php:313
+* @route '/evidence/{evidence}/file'
+*/
+viewFile.get = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: viewFile.url(args, options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\EvidenceController::viewFile
+* @see app/Http/Controllers/EvidenceController.php:313
+* @route '/evidence/{evidence}/file'
+*/
+viewFile.head = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
+    url: viewFile.url(args, options),
+    method: 'head',
+})
+
+/**
+* @see \App\Http\Controllers\EvidenceController::verify
+* @see app/Http/Controllers/EvidenceController.php:328
+* @route '/evidence/{evidence}/verify'
+*/
+export const verify = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: verify.url(args, options),
+    method: 'post',
+})
+
+verify.definition = {
+    methods: ["post"],
+    url: '/evidence/{evidence}/verify',
+} satisfies RouteDefinition<["post"]>
+
+/**
+* @see \App\Http\Controllers\EvidenceController::verify
+* @see app/Http/Controllers/EvidenceController.php:328
+* @route '/evidence/{evidence}/verify'
+*/
+verify.url = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions) => {
+    if (typeof args === 'string' || typeof args === 'number') {
+        args = { evidence: args }
+    }
+
+    if (typeof args === 'object' && !Array.isArray(args) && 'evidence_number' in args) {
+        args = { evidence: args.evidence_number }
+    }
+
+    if (Array.isArray(args)) {
+        args = {
+            evidence: args[0],
+        }
+    }
+
+    args = applyUrlDefaults(args)
+
+    const parsedArgs = {
+        evidence: typeof args.evidence === 'object'
+        ? args.evidence.evidence_number
+        : args.evidence,
+    }
+
+    return verify.definition.url
+            .replace('{evidence}', parsedArgs.evidence.toString())
+            .replace(/\/+$/, '') + queryParams(options)
+}
+
+/**
+* @see \App\Http\Controllers\EvidenceController::verify
+* @see app/Http/Controllers/EvidenceController.php:328
+* @route '/evidence/{evidence}/verify'
+*/
+verify.post = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: verify.url(args, options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\EvidenceController::issueWorkingCopy
+* @see app/Http/Controllers/EvidenceController.php:352
+* @route '/evidence/{evidence}/derivatives'
+*/
+export const issueWorkingCopy = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: issueWorkingCopy.url(args, options),
+    method: 'post',
+})
+
+issueWorkingCopy.definition = {
+    methods: ["post"],
+    url: '/evidence/{evidence}/derivatives',
+} satisfies RouteDefinition<["post"]>
+
+/**
+* @see \App\Http\Controllers\EvidenceController::issueWorkingCopy
+* @see app/Http/Controllers/EvidenceController.php:352
+* @route '/evidence/{evidence}/derivatives'
+*/
+issueWorkingCopy.url = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions) => {
+    if (typeof args === 'string' || typeof args === 'number') {
+        args = { evidence: args }
+    }
+
+    if (typeof args === 'object' && !Array.isArray(args) && 'evidence_number' in args) {
+        args = { evidence: args.evidence_number }
+    }
+
+    if (Array.isArray(args)) {
+        args = {
+            evidence: args[0],
+        }
+    }
+
+    args = applyUrlDefaults(args)
+
+    const parsedArgs = {
+        evidence: typeof args.evidence === 'object'
+        ? args.evidence.evidence_number
+        : args.evidence,
+    }
+
+    return issueWorkingCopy.definition.url
+            .replace('{evidence}', parsedArgs.evidence.toString())
+            .replace(/\/+$/, '') + queryParams(options)
+}
+
+/**
+* @see \App\Http\Controllers\EvidenceController::issueWorkingCopy
+* @see app/Http/Controllers/EvidenceController.php:352
+* @route '/evidence/{evidence}/derivatives'
+*/
+issueWorkingCopy.post = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: issueWorkingCopy.url(args, options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\EvidenceController::downloadDerivative
+* @see app/Http/Controllers/EvidenceController.php:390
+* @route '/evidence/{evidence}/derivatives/{derivative}/download'
+*/
+export const downloadDerivative = (args: { evidence: string | { evidence_number: string }, derivative: string | { derivative_number: string } } | [evidence: string | { evidence_number: string }, derivative: string | { derivative_number: string } ], options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: downloadDerivative.url(args, options),
+    method: 'get',
+})
+
+downloadDerivative.definition = {
+    methods: ["get","head"],
+    url: '/evidence/{evidence}/derivatives/{derivative}/download',
+} satisfies RouteDefinition<["get","head"]>
+
+/**
+* @see \App\Http\Controllers\EvidenceController::downloadDerivative
+* @see app/Http/Controllers/EvidenceController.php:390
+* @route '/evidence/{evidence}/derivatives/{derivative}/download'
+*/
+downloadDerivative.url = (args: { evidence: string | { evidence_number: string }, derivative: string | { derivative_number: string } } | [evidence: string | { evidence_number: string }, derivative: string | { derivative_number: string } ], options?: RouteQueryOptions) => {
+    if (Array.isArray(args)) {
+        args = {
+            evidence: args[0],
+            derivative: args[1],
+        }
+    }
+
+    args = applyUrlDefaults(args)
+
+    const parsedArgs = {
+        evidence: typeof args.evidence === 'object'
+        ? args.evidence.evidence_number
+        : args.evidence,
+        derivative: typeof args.derivative === 'object'
+        ? args.derivative.derivative_number
+        : args.derivative,
+    }
+
+    return downloadDerivative.definition.url
+            .replace('{evidence}', parsedArgs.evidence.toString())
+            .replace('{derivative}', parsedArgs.derivative.toString())
+            .replace(/\/+$/, '') + queryParams(options)
+}
+
+/**
+* @see \App\Http\Controllers\EvidenceController::downloadDerivative
+* @see app/Http/Controllers/EvidenceController.php:390
+* @route '/evidence/{evidence}/derivatives/{derivative}/download'
+*/
+downloadDerivative.get = (args: { evidence: string | { evidence_number: string }, derivative: string | { derivative_number: string } } | [evidence: string | { evidence_number: string }, derivative: string | { derivative_number: string } ], options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: downloadDerivative.url(args, options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\EvidenceController::downloadDerivative
+* @see app/Http/Controllers/EvidenceController.php:390
+* @route '/evidence/{evidence}/derivatives/{derivative}/download'
+*/
+downloadDerivative.head = (args: { evidence: string | { evidence_number: string }, derivative: string | { derivative_number: string } } | [evidence: string | { evidence_number: string }, derivative: string | { derivative_number: string } ], options?: RouteQueryOptions): RouteDefinition<'head'> => ({
+    url: downloadDerivative.url(args, options),
+    method: 'head',
+})
+
+/**
+* @see \App\Http\Controllers\EvidenceController::revokeDerivative
+* @see app/Http/Controllers/EvidenceController.php:444
+* @route '/evidence/{evidence}/derivatives/{derivative}/revoke'
+*/
+export const revokeDerivative = (args: { evidence: string | { evidence_number: string }, derivative: string | { derivative_number: string } } | [evidence: string | { evidence_number: string }, derivative: string | { derivative_number: string } ], options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: revokeDerivative.url(args, options),
+    method: 'post',
+})
+
+revokeDerivative.definition = {
+    methods: ["post"],
+    url: '/evidence/{evidence}/derivatives/{derivative}/revoke',
+} satisfies RouteDefinition<["post"]>
+
+/**
+* @see \App\Http\Controllers\EvidenceController::revokeDerivative
+* @see app/Http/Controllers/EvidenceController.php:444
+* @route '/evidence/{evidence}/derivatives/{derivative}/revoke'
+*/
+revokeDerivative.url = (args: { evidence: string | { evidence_number: string }, derivative: string | { derivative_number: string } } | [evidence: string | { evidence_number: string }, derivative: string | { derivative_number: string } ], options?: RouteQueryOptions) => {
+    if (Array.isArray(args)) {
+        args = {
+            evidence: args[0],
+            derivative: args[1],
+        }
+    }
+
+    args = applyUrlDefaults(args)
+
+    const parsedArgs = {
+        evidence: typeof args.evidence === 'object'
+        ? args.evidence.evidence_number
+        : args.evidence,
+        derivative: typeof args.derivative === 'object'
+        ? args.derivative.derivative_number
+        : args.derivative,
+    }
+
+    return revokeDerivative.definition.url
+            .replace('{evidence}', parsedArgs.evidence.toString())
+            .replace('{derivative}', parsedArgs.derivative.toString())
+            .replace(/\/+$/, '') + queryParams(options)
+}
+
+/**
+* @see \App\Http\Controllers\EvidenceController::revokeDerivative
+* @see app/Http/Controllers/EvidenceController.php:444
+* @route '/evidence/{evidence}/derivatives/{derivative}/revoke'
+*/
+revokeDerivative.post = (args: { evidence: string | { evidence_number: string }, derivative: string | { derivative_number: string } } | [evidence: string | { evidence_number: string }, derivative: string | { derivative_number: string } ], options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: revokeDerivative.url(args, options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\EvidenceController::transferCustody
+* @see app/Http/Controllers/EvidenceController.php:457
+* @route '/evidence/{evidence}/custody-transfers'
+*/
+export const transferCustody = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: transferCustody.url(args, options),
+    method: 'post',
+})
+
+transferCustody.definition = {
+    methods: ["post"],
+    url: '/evidence/{evidence}/custody-transfers',
+} satisfies RouteDefinition<["post"]>
+
+/**
+* @see \App\Http\Controllers\EvidenceController::transferCustody
+* @see app/Http/Controllers/EvidenceController.php:457
+* @route '/evidence/{evidence}/custody-transfers'
+*/
+transferCustody.url = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions) => {
+    if (typeof args === 'string' || typeof args === 'number') {
+        args = { evidence: args }
+    }
+
+    if (typeof args === 'object' && !Array.isArray(args) && 'evidence_number' in args) {
+        args = { evidence: args.evidence_number }
+    }
+
+    if (Array.isArray(args)) {
+        args = {
+            evidence: args[0],
+        }
+    }
+
+    args = applyUrlDefaults(args)
+
+    const parsedArgs = {
+        evidence: typeof args.evidence === 'object'
+        ? args.evidence.evidence_number
+        : args.evidence,
+    }
+
+    return transferCustody.definition.url
+            .replace('{evidence}', parsedArgs.evidence.toString())
+            .replace(/\/+$/, '') + queryParams(options)
+}
+
+/**
+* @see \App\Http\Controllers\EvidenceController::transferCustody
+* @see app/Http/Controllers/EvidenceController.php:457
+* @route '/evidence/{evidence}/custody-transfers'
+*/
+transferCustody.post = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: transferCustody.url(args, options),
+    method: 'post',
+})
+
+/**
+* @see \App\Http\Controllers\EvidenceController::show
+* @see app/Http/Controllers/EvidenceController.php:155
+* @route '/evidence/{evidence}'
+*/
+export const show = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: show.url(args, options),
+    method: 'get',
+})
+
+show.definition = {
+    methods: ["get","head"],
+    url: '/evidence/{evidence}',
+} satisfies RouteDefinition<["get","head"]>
+
+/**
+* @see \App\Http\Controllers\EvidenceController::show
+* @see app/Http/Controllers/EvidenceController.php:155
+* @route '/evidence/{evidence}'
+*/
+show.url = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions) => {
+    if (typeof args === 'string' || typeof args === 'number') {
+        args = { evidence: args }
+    }
+
+    if (typeof args === 'object' && !Array.isArray(args) && 'evidence_number' in args) {
+        args = { evidence: args.evidence_number }
+    }
+
+    if (Array.isArray(args)) {
+        args = {
+            evidence: args[0],
+        }
+    }
+
+    args = applyUrlDefaults(args)
+
+    const parsedArgs = {
+        evidence: typeof args.evidence === 'object'
+        ? args.evidence.evidence_number
+        : args.evidence,
+    }
+
+    return show.definition.url
+            .replace('{evidence}', parsedArgs.evidence.toString())
+            .replace(/\/+$/, '') + queryParams(options)
+}
+
+/**
+* @see \App\Http\Controllers\EvidenceController::show
+* @see app/Http/Controllers/EvidenceController.php:155
+* @route '/evidence/{evidence}'
+*/
+show.get = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: show.url(args, options),
+    method: 'get',
+})
+
+/**
+* @see \App\Http\Controllers\EvidenceController::show
+* @see app/Http/Controllers/EvidenceController.php:155
+* @route '/evidence/{evidence}'
+*/
+show.head = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
+    url: show.url(args, options),
+    method: 'head',
+})
+
+const EvidenceController = { index, quickCreate, quickStore, create, store, completeIntake, viewFile, verify, issueWorkingCopy, downloadDerivative, revokeDerivative, transferCustody, show }
 
 export default EvidenceController

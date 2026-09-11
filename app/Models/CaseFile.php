@@ -110,6 +110,12 @@ class CaseFile extends Model
         return $this->hasMany(Evidence::class, 'case_id');
     }
 
+    /** Reports generated for this case. */
+    public function reports(): HasMany
+    {
+        return $this->hasMany(Report::class, 'case_id');
+    }
+
     /**
      * Whether the given user has a team-membership record on this case.
      * Used by policies alongside the creator/case-manager checks — being the

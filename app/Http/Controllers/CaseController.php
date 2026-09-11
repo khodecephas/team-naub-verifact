@@ -115,19 +115,19 @@ class CaseController extends Controller
     /**
      * Show a case's real state: its own record, its registered evidence
      * (with real hashes and integrity status), its team, and a timeline
-     * built only from timestamps that actually exist — no custody, working
-     * copies, findings, or judicial review are tracked yet, so none of
-     * those are shown as if they were.
+     * built only from timestamps that actually exist. Custody remains
+     * attached to individual evidence records rather than to the case.
      */
     public function show(CaseFile $caseFile): Response
     {
         $this->authorize('view', $caseFile);
 
         $caseFile->load([
-            'creator:id,name',
-            'caseManager:id,name',
+            'creator:id,name,role',
+            'caseManager:id,name,role',
             'closer:id,name',
-            'assignments.user:id,name',
+            'assignments.user:id,name,role',
+            'assignments.assignedBy:id,name',
             'evidence' => fn ($query) => $query->with('registeredBy:id,name')->latest('registered_at'),
             'physicalSources:id,case_id,label,source_type',
         ]);
@@ -192,7 +192,7 @@ class CaseController extends Controller
      * deduplicated. No badge numbers or "key authenticated" claims — we
      * don't have hardware-token integration.
      *
-     * @return array<int, array{id: int, name: string, role: string}>
+     * @return array<int, array{id: int, name: string, system_role: string, case_role: string, assigned_at: ?string, assigned_by: ?string}>
      */
     private function personnel(CaseFile $caseFile): array
     {
@@ -202,7 +202,10 @@ class CaseController extends Controller
             $people->push([
                 'id' => $caseFile->caseManager->id,
                 'name' => $caseFile->caseManager->name,
-                'role' => 'Case Manager',
+                'system_role' => ucwords(strtolower(str_replace('_', ' ', $caseFile->caseManager->role))),
+                'case_role' => 'Case Manager',
+                'assigned_at' => $caseFile->opened_at?->toIso8601String(),
+                'assigned_by' => $caseFile->creator?->name,
             ]);
         }
 
@@ -214,7 +217,10 @@ class CaseController extends Controller
             $people->push([
                 'id' => $assignment->user->id,
                 'name' => $assignment->user->name,
-                'role' => ucwords(strtolower(str_replace('_', ' ', $assignment->role_on_case))),
+                'system_role' => ucwords(strtolower(str_replace('_', ' ', $assignment->user->role))),
+                'case_role' => ucwords(strtolower(str_replace('_', ' ', $assignment->role_on_case))),
+                'assigned_at' => $assignment->assigned_at?->toIso8601String(),
+                'assigned_by' => $assignment->assignedBy?->name,
             ]);
         }
 

@@ -6,11 +6,12 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * The authoritative master digital evidence record. `sha256_baseline` is set
- * once at registration and never overwritten — later verification (Phase 6)
- * compares against it but always via a new, separate history record.
+ * once at registration and never overwritten. Every later verification
+ * compares against it and creates a separate history record.
  */
 #[Fillable([
     'evidence_number',
@@ -28,6 +29,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'sha256_baseline',
     'integrity_status',
     'registered_by',
+    'current_custodian_id',
+    'current_custody_location',
     'registered_at',
 ])]
 class Evidence extends Model
@@ -79,5 +82,36 @@ class Evidence extends Model
     public function registeredBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'registered_by');
+    }
+
+    public function currentCustodian(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'current_custodian_id');
+    }
+
+    public function verifications(): HasMany
+    {
+        return $this->hasMany(EvidenceVerification::class);
+    }
+
+    public function custodyEvents(): HasMany
+    {
+        return $this->hasMany(EvidenceCustodyEvent::class);
+    }
+
+    /** Custody requests made for this evidence item. */
+    public function custodyRequests(): HasMany
+    {
+        return $this->hasMany(CustodyRequest::class);
+    }
+
+    public function workingCopies(): HasMany
+    {
+        return $this->hasMany(EvidenceWorkingCopy::class);
+    }
+
+    public function derivatives(): HasMany
+    {
+        return $this->hasMany(EvidenceDerivative::class);
     }
 }

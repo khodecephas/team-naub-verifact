@@ -13,7 +13,7 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                sans: ['Inter', ...defaultTheme.fontFamily.sans],
                 // Material-3-style role names from the Stitch design system
                 // (Forensic Portal pages). New key names only — nothing here
                 // touches Tailwind's default scale, so existing pages are
@@ -50,9 +50,9 @@ export default {
                 'surface-container-high': '#dce9ff',
                 'surface-bright': '#f8f9ff',
                 'on-primary': '#ffffff',
-                primary: '#000000',
+                primary: '#0f2742',
                 'tertiary-container': '#002114',
-                surface: '#f8f9ff',
+                surface: '#f1f5f9',
                 'on-tertiary-fixed-variant': '#005137',
                 'primary-fixed': '#dae2fd',
                 'on-secondary-fixed': '#00174b',
@@ -65,7 +65,7 @@ export default {
                 'secondary-fixed-dim': '#b4c5ff',
                 'surface-container-low': '#eff4ff',
                 'inverse-primary': '#bec6e0',
-                secondary: '#0051d5',
+                secondary: '#1d4f7a',
                 'on-tertiary-fixed': '#002114',
                 'on-secondary-fixed-variant': '#003ea8',
                 'outline-variant': '#c6c6cd',
@@ -90,7 +90,7 @@ export default {
                 'on-secondary-container': '#fefcff',
                 'secondary-container': '#316bf3',
                 'on-primary-container': '#7c839b',
-                background: '#f8f9ff',
+                background: '#f1f5f9',
                 'error-container': '#ffdad6',
                 'on-secondary': '#ffffff',
 
@@ -105,7 +105,7 @@ export default {
                 muted: '#f1f5f9',
                 'muted-foreground': '#64748b',
                 border: '#e2e8f0',
-                ring: '#0f172a',
+                ring: '#1d4f7a',
                 destructive: '#ba1a1a',
                 'destructive-foreground': '#ffffff',
             },

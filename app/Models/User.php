@@ -81,4 +81,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(Evidence::class, 'registered_by');
     }
+
+    public function createdEvidenceDerivatives(): HasMany
+    {
+        return $this->hasMany(EvidenceDerivative::class, 'created_by');
+    }
+
+    public function issuedEvidenceDerivatives(): HasMany
+    {
+        return $this->hasMany(EvidenceDerivative::class, 'issued_to');
+    }
 }

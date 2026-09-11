@@ -32,11 +32,11 @@ class EvidenceResource extends JsonResource
             'sha256_baseline' => $this->sha256_baseline,
             'integrity_status' => $this->integrity_status,
             'registered_at' => $this->registered_at?->toIso8601String(),
-            'case' => $this->whenLoaded('case', fn () => [
+            'case' => $this->whenLoaded('case', fn () => $this->case ? [
                 'id' => $this->case->id,
                 'case_number' => $this->case->case_number,
                 'title' => $this->case->title,
-            ]),
+            ] : null),
             'physical_source' => $this->whenLoaded(
                 'physicalSource',
                 fn () => $this->physicalSource ? [
@@ -48,6 +48,14 @@ class EvidenceResource extends JsonResource
                 'id' => $this->registeredBy->id,
                 'name' => $this->registeredBy->name,
             ]),
+            'current_custodian' => $this->whenLoaded(
+                'currentCustodian',
+                fn () => $this->currentCustodian ? [
+                    'id' => $this->currentCustodian->id,
+                    'name' => $this->currentCustodian->name,
+                ] : null,
+            ),
+            'current_custody_location' => $this->current_custody_location,
         ];
     }
 }

@@ -29,6 +29,28 @@ class EvidenceHashService
             throw new RuntimeException("Evidence file not found for hashing: [{$disk}] {$path}");
         }
 
+        return self::hashStream($stream, "[{$disk}] {$path}");
+    }
+
+    /**
+     * Calculate SHA-256 before an uploaded file is moved into master storage.
+     */
+    public static function sha256Path(string $path): string
+    {
+        $stream = @fopen($path, 'rb');
+
+        if ($stream === false) {
+            throw new RuntimeException('Uploaded evidence file could not be opened for hashing.');
+        }
+
+        return self::hashStream($stream, $path);
+    }
+
+    /**
+     * @param  resource  $stream
+     */
+    private static function hashStream($stream, string $source): string
+    {
         $context = hash_init('sha256');
 
         try {
@@ -36,7 +58,7 @@ class EvidenceHashService
                 $chunk = fread($stream, self::CHUNK_SIZE);
 
                 if ($chunk === false) {
-                    throw new RuntimeException("Failed reading evidence file while hashing: [{$disk}] {$path}");
+                    throw new RuntimeException("Failed reading evidence file while hashing: {$source}");
                 }
 
                 hash_update($context, $chunk);

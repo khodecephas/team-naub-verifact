@@ -1,4 +1,5 @@
 import ApplicationLogo from '@/Components/ApplicationLogo';
+import { FlashNotificationDialog } from '@/components/notifications/FlashNotificationDialog';
 import { PropsWithChildren } from 'react';
 
 /**
@@ -10,6 +11,7 @@ import { PropsWithChildren } from 'react';
 export default function GuestLayout({ children }: PropsWithChildren) {
     return (
         <div className="flex min-h-screen w-full flex-col bg-surface font-body-md text-on-surface antialiased selection:bg-slate-900 selection:text-white lg:flex-row">
+            <FlashNotificationDialog />
             <aside className="relative flex w-full flex-col justify-between overflow-hidden border-r border-slate-800 bg-[#0B1329] p-8 text-white sm:p-12 lg:w-[46%] lg:p-14 xl:w-[44%] xl:p-16">
                 <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(#1E293B_1px,transparent_1px)] opacity-40 [background-size:24px_24px]" />
                 <div className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-blue-600/10 blur-3xl" />

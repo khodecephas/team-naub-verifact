@@ -1,11 +1,14 @@
-import CaseController from '@/actions/App/Http/Controllers/CaseController';
-import EvidenceController from '@/actions/App/Http/Controllers/EvidenceController';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { PageProps } from '@/types';
-import { Head, Link } from '@inertiajs/react';
+import CaseController from "@/actions/App/Http/Controllers/CaseController";
+import EvidenceController from "@/actions/App/Http/Controllers/EvidenceController";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/ui/data-table";
+import { Panel, PanelHeader } from "@/components/ui/panel";
+import { StatusBadge } from "@/components/ui/status-badge";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import type { PageProps } from "@/types";
+import { Head, Link } from "@inertiajs/react";
+import type { ColumnDef } from "@tanstack/react-table";
 
 interface DashboardStats {
     active_cases: number;
@@ -38,33 +41,14 @@ interface RecentEvidenceItem {
     registered_at: string;
 }
 
-function statusVariant(status: string): 'default' | 'muted' {
-    return status === 'CLOSED' || status === 'ARCHIVED' ? 'muted' : 'default';
+function formatDate(value: string): string {
+    return new Intl.DateTimeFormat(undefined, {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+    }).format(new Date(value));
 }
 
-function timeAgo(iso: string): string {
-    const minutes = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
-    if (minutes < 1) return 'just now';
-    if (minutes < 60) return `${minutes} min${minutes === 1 ? '' : 's'} ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
-    return `${Math.floor(hours / 24)} day${Math.floor(hours / 24) === 1 ? '' : 's'} ago`;
-}
-
-/**
- * Adapted from the Stitch dashboard design. Several elements in the source
- * have no backend yet and were changed rather than faked with placeholder
- * numbers: "Pending Custody Requests" (no custody/access-request system)
- * became a real "Physical Sources" count; the fabricated "99.9% integrity"
- * / "Vault Assurance Level" / active-alert card became a real breakdown of
- * `integrity_status` counts; the custody/verification activity stream
- * became a plain evidence-registration feed (the only real audit-trail-like
- * data that exists); "Cold Vault Lock: ENGAGED", the fake session ID, the
- * notification badge, and the online/synced indicator were dropped
- * entirely. "Verify Hash" and "Register Evidence" (needs a case picked
- * first) stay disabled — there's no verify flow, and no case list to pick
- * one from yet. "Create Case" now links to the real case-intake page.
- */
 export default function Dashboard({
     auth,
     stats,
@@ -75,239 +59,371 @@ export default function Dashboard({
     recentCases: RecentCase[];
     recentEvidence: RecentEvidenceItem[];
 }>) {
+    const metrics = [
+        {
+            label: "Active cases",
+            value: stats.active_cases,
+            detail: `${stats.total_cases} total case records`,
+            icon: "folder_open",
+            tone: "text-blue-700 bg-blue-50",
+        },
+        {
+            label: "Registered evidence",
+            value: stats.evidence_total,
+            detail: `${stats.physical_source_total} physical sources`,
+            icon: "inventory_2",
+            tone: "text-slate-700 bg-slate-100",
+        },
+        {
+            label: "Pending verification",
+            value: stats.integrity.verification_required,
+            detail: "Requires examiner action",
+            icon: "schedule",
+            tone: "text-amber-700 bg-amber-50",
+        },
+        {
+            label: "Integrity alerts",
+            value: stats.integrity.integrity_failure,
+            detail: stats.integrity.integrity_failure
+                ? "Immediate review required"
+                : "No active failures",
+            icon: "warning",
+            tone: stats.integrity.integrity_failure
+                ? "text-red-700 bg-red-50"
+                : "text-emerald-700 bg-emerald-50",
+        },
+    ];
+    const recentCaseColumns: ColumnDef<RecentCase, unknown>[] = [
+        {
+            accessorKey: "case_number",
+            header: "Case ID / title",
+            cell: ({ row }) => (
+                <div>
+                    <Link
+                        href={CaseController.show(row.original.case_number)}
+                        className="font-mono text-xs font-bold text-blue-800 hover:underline"
+                    >
+                        {row.original.case_number}
+                    </Link>
+                    <p className="mt-1 max-w-[280px] truncate text-xs font-medium text-slate-700">
+                        {row.original.title}
+                    </p>
+                </div>
+            ),
+        },
+        {
+            accessorKey: "case_manager",
+            header: "Lead / manager",
+            cell: ({ row }) => (
+                <span className="text-xs text-slate-600">
+                    {row.original.case_manager ?? "Unassigned"}
+                </span>
+            ),
+        },
+        {
+            accessorKey: "evidence_count",
+            header: "Evidence",
+            cell: ({ row }) => (
+                <span className="font-mono text-xs text-slate-600">
+                    {row.original.evidence_count}
+                </span>
+            ),
+        },
+        {
+            accessorKey: "status",
+            header: "Status",
+            cell: ({ row }) => <StatusBadge status={row.original.status} />,
+        },
+        {
+            accessorKey: "updated_at",
+            header: "Last activity",
+            cell: ({ row }) => (
+                <span className="whitespace-nowrap text-xs text-slate-500">
+                    {formatDate(row.original.updated_at)}
+                </span>
+            ),
+        },
+    ];
+
     return (
         <AuthenticatedLayout>
             <Head title="Dashboard" />
-
-            <div className="mx-auto px-6 py-8">
-                <div className="flex flex-col gap-8">
-                    <div className="flex flex-col gap-6 pb-2 lg:flex-row lg:items-center lg:justify-between">
-                        <div className="flex flex-col gap-1">
-                            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-                                Good morning, {auth.user.name}
-                            </h1>
-                            <p className="text-sm text-slate-500">H1 Digital Evidence Management Overview</p>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-3">
-                            <Button variant="outline" disabled title="Verification isn't implemented yet">
-                                <span className="material-symbols-outlined text-[18px]">verified_user</span>
-                                Verify Hash
+            <div className="flex flex-col gap-4">
+                <PageHeader
+                    eyebrow={
+                        <>
+                            Dashboard{" "}
+                            <span className="mx-1 text-slate-300">/</span>{" "}
+                            Operational overview
+                        </>
+                    }
+                    title={`Welcome, ${auth.user.name}`}
+                    description="Review active investigations, registered evidence, and items requiring attention."
+                    actions={
+                        <>
+                            <Button
+                                variant="outline"
+                                disabled
+                                title="Verification is not implemented yet"
+                            >
+                                <span className="material-symbols-outlined text-[17px]">
+                                    verified_user
+                                </span>
+                                Verify hash
                             </Button>
-                            <Button variant="outline" disabled title="Open a case first — not available from the dashboard yet">
-                                <span className="material-symbols-outlined text-[18px]">add_box</span>
-                                Register Evidence
+                            <Button
+                                variant="outline"
+                                disabled
+                                title="Open a case first to register evidence"
+                            >
+                                <span className="material-symbols-outlined text-[17px]">
+                                    add_box
+                                </span>
+                                Register evidence
                             </Button>
                             <Button asChild>
                                 <Link href={CaseController.create()}>
-                                    <span className="material-symbols-outlined text-[18px]">create_new_folder</span>
-                                    Create Case
+                                    <span className="material-symbols-outlined text-[17px]">
+                                        create_new_folder
+                                    </span>
+                                    Create case
                                 </Link>
                             </Button>
-                        </div>
-                    </div>
+                        </>
+                    }
+                />
 
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                        <StatCard
-                            icon="folder_special"
-                            label="Active Cases"
-                            value={stats.active_cases}
-                            footer={`${stats.total_cases} total cases`}
-                        />
-                        <StatCard
-                            icon="dataset"
-                            label="Registered Evidence"
-                            value={stats.evidence_total}
-                            footer={`${stats.physical_source_total} physical sources logged`}
-                        />
-                        <StatCard
-                            icon="inventory_2"
-                            label="Physical Sources"
-                            value={stats.physical_source_total}
-                            footer="Exhibits logged across all cases"
-                        />
-                        <StatCard
-                            icon="enhanced_encryption"
-                            label="Evidence Integrity"
-                            value={stats.integrity.baseline_established}
-                            footer="Baseline established — verification not yet run"
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-3">
-                        <div className="flex flex-col gap-8 lg:col-span-2">
-                            <div className="overflow-hidden rounded-xl bg-white shadow-sm">
-                                <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-6 py-4">
-                                    <div>
-                                        <h2 className="text-base font-semibold text-slate-900">Recent Cases</h2>
-                                        <p className="text-xs text-slate-500">Most recently updated cases</p>
-                                    </div>
-                                </div>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Case</TableHead>
-                                            <TableHead>Manager</TableHead>
-                                            <TableHead>Evidence</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead>Updated</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {recentCases.map((c) => (
-                                            <TableRow key={c.id}>
-                                                <TableCell>
-                                                    <Link
-                                                        href={CaseController.show(c.case_number)}
-                                                        className="font-mono text-xs font-semibold text-secondary hover:underline"
-                                                    >
-                                                        {c.case_number}
-                                                    </Link>
-                                                    <div className="max-w-[220px] truncate text-sm font-medium text-slate-900" title={c.title}>
-                                                        {c.title}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="text-sm text-slate-600">{c.case_manager ?? '—'}</TableCell>
-                                                <TableCell>
-                                                    <Badge variant="outline">{c.evidence_count} items</Badge>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge variant={statusVariant(c.status)}>{c.status.replace('_', ' ')}</Badge>
-                                                </TableCell>
-                                                <TableCell className="text-xs text-slate-500">{timeAgo(c.updated_at)}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                        {recentCases.length === 0 && (
-                                            <TableRow>
-                                                <TableCell colSpan={5} className="py-8 text-center text-sm text-slate-500">
-                                                    No cases yet.
-                                                </TableCell>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    {metrics.map((metric) => (
+                        <Panel key={metric.label} className="p-5">
+                            <div className="flex items-start justify-between gap-3">
+                                <span className="text-xs font-bold uppercase tracking-[0.1em] text-slate-600">
+                                    {metric.label}
+                                </span>
+                                <span
+                                    aria-hidden="true"
+                                    className={`material-symbols-outlined rounded p-2 text-xl ${metric.tone}`}
+                                >
+                                    {metric.icon}
+                                </span>
                             </div>
+                            <div className="mt-3 text-3xl font-semibold tabular-nums tracking-tight text-slate-950">
+                                {metric.value.toLocaleString()}
+                            </div>
+                            <p className="mt-2 text-xs text-slate-500">
+                                {metric.detail}
+                            </p>
+                        </Panel>
+                    ))}
+                </div>
 
-                            <div className="flex flex-col gap-4 rounded-xl bg-white p-6 shadow-sm">
-                                <div>
-                                    <h2 className="text-base font-semibold text-slate-900">Recent Evidence Registrations</h2>
-                                    <p className="text-xs text-slate-500">
-                                        Newest master evidence records. Chain-of-custody and verification history
-                                        aren't tracked yet, so this shows registration events only.
-                                    </p>
-                                </div>
-                                <div className="flex flex-col divide-y divide-slate-100">
-                                    {recentEvidence.map((item) => (
-                                        <div key={item.id} className="flex items-center justify-between gap-3 py-3">
-                                            <div className="flex flex-col gap-0.5">
-                                                <div className="flex items-center gap-2 text-sm">
-                                                    <span className="font-semibold text-slate-900">{item.title}</span>
-                                                    <Link
-                                                        href={EvidenceController.show(item.evidence_number)}
-                                                        className="font-mono text-xs text-secondary hover:underline"
-                                                    >
-                                                        {item.evidence_number}
-                                                    </Link>
-                                                </div>
-                                                <p className="text-xs text-slate-500">
-                                                    Registered by {item.registered_by ?? 'unknown user'}
-                                                </p>
-                                            </div>
-                                            <span className="whitespace-nowrap text-xs text-slate-400">
-                                                {timeAgo(item.registered_at)}
-                                            </span>
+                <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(300px,1fr)]">
+                    <div className="flex min-w-0 flex-col gap-6">
+                        <DataTable
+                            title="Recent cases"
+                            description="Most recently updated investigation records"
+                            headerAction={
+                                <Button size="sm" variant="outline" asChild>
+                                    <Link href={CaseController.index()}>
+                                        View all cases
+                                    </Link>
+                                </Button>
+                            }
+                            columns={recentCaseColumns}
+                            data={recentCases}
+                            searchText="Search recent cases…"
+                            searchAccessor={(caseFile) =>
+                                `${caseFile.case_number} ${caseFile.title} ${caseFile.case_manager ?? ""} ${caseFile.status}`
+                            }
+                            getRowId={(caseFile) => caseFile.case_number}
+                            emptyMessage="No cases have been created."
+                        />
+
+                        <Panel>
+                            <PanelHeader
+                                title="Recent evidence activity"
+                                description="Latest evidence registration events"
+                                action={
+                                    <Button size="sm" variant="outline" asChild>
+                                        <Link href={EvidenceController.index()}>
+                                            Evidence registry
+                                        </Link>
+                                    </Button>
+                                }
+                            />
+                            <div className="divide-y divide-slate-100">
+                                {recentEvidence.map((item) => (
+                                    <div
+                                        key={item.id}
+                                        className="flex items-start gap-3 px-5 py-4"
+                                    >
+                                        <span
+                                            aria-hidden="true"
+                                            className="material-symbols-outlined rounded bg-slate-100 p-2 text-lg text-slate-600"
+                                        >
+                                            description
+                                        </span>
+                                        <div className="min-w-0 flex-1">
+                                            <Link
+                                                href={EvidenceController.show(
+                                                    item.evidence_number,
+                                                )}
+                                                className="block truncate text-sm font-semibold text-slate-800 hover:text-blue-800"
+                                            >
+                                                {item.title}
+                                            </Link>
+                                            <p className="mt-1 text-xs text-slate-500">
+                                                <span className="font-mono font-medium">
+                                                    {item.evidence_number}
+                                                </span>{" "}
+                                                · Registered by{" "}
+                                                {item.registered_by ??
+                                                    "unknown user"}
+                                            </p>
                                         </div>
-                                    ))}
-                                    {recentEvidence.length === 0 && (
-                                        <p className="py-6 text-center text-sm text-slate-500">No evidence registered yet.</p>
-                                    )}
+                                        <time
+                                            dateTime={item.registered_at}
+                                            className="shrink-0 text-xs text-slate-500"
+                                        >
+                                            {formatDate(item.registered_at)}
+                                        </time>
+                                    </div>
+                                ))}
+                                {recentEvidence.length === 0 && (
+                                    <p className="px-5 py-10 text-center text-sm text-slate-500">
+                                        No evidence has been registered.
+                                    </p>
+                                )}
+                            </div>
+                        </Panel>
+                    </div>
+
+                    <div className="flex flex-col gap-4">
+                        <Panel>
+                            <PanelHeader
+                                title="Integrity status"
+                                description="Current evidence integrity classifications"
+                            />
+                            <div className="space-y-3 p-5">
+                                {[
+                                    [
+                                        "Baseline established",
+                                        stats.integrity.baseline_established,
+                                        "bg-blue-600",
+                                    ],
+                                    [
+                                        "Verified",
+                                        stats.integrity.verified,
+                                        "bg-emerald-600",
+                                    ],
+                                    [
+                                        "Verification required",
+                                        stats.integrity.verification_required,
+                                        "bg-amber-500",
+                                    ],
+                                    [
+                                        "Integrity failure",
+                                        stats.integrity.integrity_failure,
+                                        "bg-red-600",
+                                    ],
+                                ].map(([label, value, color]) => (
+                                    <div
+                                        key={String(label)}
+                                        className="flex items-center gap-2 text-xs"
+                                    >
+                                        <span
+                                            className={`h-2 w-2 rounded-full ${color}`}
+                                        />
+                                        <span className="text-slate-600">
+                                            {label}
+                                        </span>
+                                        <span className="ml-auto font-mono font-bold text-slate-900">
+                                            {value}
+                                        </span>
+                                    </div>
+                                ))}
+                                <p className="border-t border-slate-100 pt-4 text-xs leading-5 text-slate-500">
+                                    A baseline records the file fingerprint at
+                                    registration. It does not by itself indicate
+                                    a later verification.
+                                </p>
+                            </div>
+                        </Panel>
+                        <Panel>
+                            <PanelHeader
+                                title="Pending custody actions"
+                                description="Transfers and acknowledgements awaiting action"
+                            />
+                            <div className="p-5">
+                                <div className="rounded border border-dashed border-slate-300 bg-slate-50 p-5 text-center">
+                                    <span
+                                        aria-hidden="true"
+                                        className="material-symbols-outlined text-2xl text-slate-400"
+                                    >
+                                        swap_horiz
+                                    </span>
+                                    <p className="mt-2 text-sm font-medium text-slate-700">
+                                        Custody workflow pending implementation
+                                    </p>
+                                    <p className="mt-1 text-xs leading-5 text-slate-500">
+                                        Transfer requests and acknowledgements
+                                        will appear here.
+                                    </p>
+                                    <Button
+                                        className="mt-4"
+                                        size="sm"
+                                        variant="outline"
+                                        disabled
+                                        title="Custody workflow is not available yet"
+                                    >
+                                        Open custody queue
+                                    </Button>
                                 </div>
                             </div>
-                        </div>
-
-                        <div className="flex flex-col gap-6">
-                            <div className="flex flex-col gap-3 rounded-xl bg-white p-6 shadow-sm">
-                                <h2 className="text-base font-semibold text-slate-900">Integrity Status Breakdown</h2>
-                                <IntegrityRow label="Baseline Established" value={stats.integrity.baseline_established} icon="verified" />
-                                <IntegrityRow label="Verified" value={stats.integrity.verified} icon="check_circle" />
-                                <IntegrityRow label="Verification Required" value={stats.integrity.verification_required} icon="pending" />
-                                <IntegrityRow
-                                    label="Integrity Failure"
-                                    value={stats.integrity.integrity_failure}
-                                    icon="error"
-                                    tone="text-red-600"
-                                />
-                                <p className="text-xs leading-relaxed text-slate-400">
-                                    Verification isn't implemented yet — every registered item currently shows
-                                    Baseline Established.
-                                </p>
-                            </div>
-
-                            <div className="flex flex-col gap-3 rounded-xl bg-white p-6 shadow-sm">
-                                <h2 className="text-base font-semibold text-slate-900">Evidence</h2>
-                                <p className="text-sm text-slate-500">
-                                    Evidence is registered per case. Browse existing evidence, or open a case to
-                                    register a new item.
-                                </p>
-                                <Button asChild className="w-full">
+                        </Panel>
+                        <Panel>
+                            <PanelHeader
+                                title="Quick evidence ingestion"
+                                description="Register evidence from the relevant case record"
+                            />
+                            <div className="p-5">
+                                <button
+                                    type="button"
+                                    disabled
+                                    title="Dashboard file ingestion is not available yet"
+                                    className="flex w-full cursor-not-allowed flex-col items-center rounded border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-slate-400"
+                                >
+                                    <span
+                                        aria-hidden="true"
+                                        className="material-symbols-outlined text-3xl"
+                                    >
+                                        cloud_upload
+                                    </span>
+                                    <span className="mt-2 text-sm font-semibold text-slate-500">
+                                        Drop evidence files here or browse
+                                    </span>
+                                    <span className="mt-1 text-xs">
+                                        Documents, photos, audio, video, and
+                                        forensic images
+                                    </span>
+                                </button>
+                                <Button
+                                    className="mt-4 w-full"
+                                    variant="outline"
+                                    asChild
+                                >
                                     <Link href={EvidenceController.index()}>
-                                        <span className="material-symbols-outlined text-[18px]">inventory_2</span>
-                                        View All Evidence
+                                        <span className="material-symbols-outlined text-[16px]">
+                                            inventory_2
+                                        </span>
+                                        View all evidence
                                     </Link>
                                 </Button>
                             </div>
-
-                            <div className="flex flex-col gap-3 rounded-xl bg-white p-5 shadow-sm">
-                                <div className="flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-[18px] text-slate-400">verified</span>
-                                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                        System Certifications
-                                    </span>
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                    <Badge variant="muted">CJIS Level 4</Badge>
-                                    <Badge variant="muted">FIPS 140-3</Badge>
-                                    <Badge variant="muted">ISO/IEC 27037</Badge>
-                                </div>
-                            </div>
-                        </div>
+                        </Panel>
                     </div>
                 </div>
             </div>
         </AuthenticatedLayout>
-    );
-}
-
-function StatCard({ icon, label, value, footer }: { icon: string; label: string; value: number; footer: string }) {
-    return (
-        <div className="flex flex-col justify-between rounded-xl bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</span>
-                <span className="material-symbols-outlined text-[20px] text-secondary">{icon}</span>
-            </div>
-            <div className="my-3 text-3xl font-bold tracking-tight text-slate-900">{value.toLocaleString()}</div>
-            <div className="rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs text-slate-500">{footer}</div>
-        </div>
-    );
-}
-
-function IntegrityRow({
-    label,
-    value,
-    icon,
-    tone = 'text-slate-900',
-}: {
-    label: string;
-    value: number;
-    icon: string;
-    tone?: string;
-}) {
-    return (
-        <div className="flex items-center gap-3 rounded-lg bg-slate-50 p-3">
-            <span className={`material-symbols-outlined text-[20px] ${tone}`}>{icon}</span>
-            <div className="flex flex-1 items-center justify-between">
-                <span className="text-sm text-slate-700">{label}</span>
-                <span className={`text-sm font-semibold ${tone}`}>{value}</span>
-            </div>
-        </div>
     );
 }

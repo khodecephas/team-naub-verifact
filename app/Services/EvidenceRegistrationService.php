@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\EvidenceType;
 use App\Enums\IdentifierScope;
 use App\Enums\IntegrityStatus;
 use App\Models\CaseFile;
@@ -13,10 +14,9 @@ use Illuminate\Support\Facades\Storage;
 use Throwable;
 
 /**
- * Registers a new piece of master digital evidence: stores the file on a
- * private disk, hashes it, and records the baseline. This is the single
- * entry point for evidence registration — controllers must not duplicate
- * any of this logic.
+ * Registers master evidence through one controlled path. The temporary
+ * upload is hashed before storage, then the stored master is hashed again
+ * before its database record is committed.
  */
 class EvidenceRegistrationService
 {
@@ -34,13 +34,21 @@ class EvidenceRegistrationService
      *
      * @param  array{physical_source_id?: int|null, title: string, description?: string|null, evidence_type: string}  $data
      */
-    public static function register(CaseFile $case, User $registeredBy, array $data, UploadedFile $file): Evidence
+    public static function register(?CaseFile $case, User $registeredBy, array $data, UploadedFile $file): Evidence
     {
+        $sourcePath = $file->getRealPath();
+
+        if ($sourcePath === false) {
+            throw new \RuntimeException('Uploaded evidence file is no longer available for registration.');
+        }
+
+        $sourceHash = EvidenceHashService::sha256Path($sourcePath);
         $evidenceNumber = IdentifierService::next(IdentifierScope::EVIDENCE());
         $disk = config('evidence.disk');
 
         $extension = self::safeExtension($file);
-        $directory = "evidence/{$case->case_number}/{$evidenceNumber}/master";
+        $caseDirectory = $case?->case_number ?? 'unassigned';
+        $directory = "evidence/{$caseDirectory}/{$evidenceNumber}/master";
         $filename = "master{$extension}";
 
         $storedPath = Storage::disk($disk)->putFileAs($directory, $file, $filename);
@@ -50,14 +58,27 @@ class EvidenceRegistrationService
         }
 
         try {
-            $sha256 = EvidenceHashService::sha256($disk, $storedPath);
+            $storedHash = EvidenceHashService::sha256($disk, $storedPath);
+
+            if (! hash_equals($sourceHash, $storedHash)) {
+                throw new \RuntimeException('Stored evidence failed its initial integrity validation.');
+            }
 
             return DB::transaction(function () use (
-                $case, $registeredBy, $data, $file, $evidenceNumber, $disk, $storedPath, $sha256, $extension,
+                $case,
+                $registeredBy,
+                $data,
+                $file,
+                $evidenceNumber,
+                $disk,
+                $storedPath,
+                $sourceHash,
+                $storedHash,
+                $extension,
             ) {
-                return Evidence::create([
+                $evidence = Evidence::create([
                     'evidence_number' => $evidenceNumber,
-                    'case_id' => $case->id,
+                    'case_id' => $case?->id,
                     'physical_source_id' => $data['physical_source_id'] ?? null,
                     'title' => $data['title'],
                     'description' => $data['description'] ?? null,
@@ -68,11 +89,25 @@ class EvidenceRegistrationService
                     'mime_type' => $file->getMimeType(),
                     'file_extension' => ltrim($extension, '.') ?: null,
                     'file_size_bytes' => $file->getSize(),
-                    'sha256_baseline' => $sha256,
-                    'integrity_status' => IntegrityStatus::BASELINE_ESTABLISHED,
+                    'sha256_baseline' => $sourceHash,
+                    'integrity_status' => IntegrityStatus::VERIFIED,
                     'registered_by' => $registeredBy->id,
+                    'current_custodian_id' => $registeredBy->id,
                     'registered_at' => now(),
                 ]);
+
+                $evidence->verifications()->create([
+                    'baseline_sha256' => $sourceHash,
+                    'observed_sha256' => $storedHash,
+                    'matches_baseline' => true,
+                    'verification_method' => 'REGISTRATION_VALIDATION',
+                    'verified_by' => $registeredBy->id,
+                    'verified_at' => now(),
+                ]);
+
+                EvidenceCustodyService::recordInitialCustody($evidence, $registeredBy);
+
+                return $evidence;
             });
         } catch (Throwable $e) {
             // Never leave a stored file behind for a database record that
@@ -81,6 +116,22 @@ class EvidenceRegistrationService
 
             throw $e;
         }
+    }
+
+    public static function registerUnassigned(User $registeredBy, UploadedFile $file): Evidence
+    {
+        $originalFilename = self::sanitizeOriginalFilename($file->getClientOriginalName());
+        $derivedTitle = trim((string) pathinfo($originalFilename, PATHINFO_FILENAME));
+
+        return self::register(
+            case: null,
+            registeredBy: $registeredBy,
+            data: [
+                'title' => $derivedTitle !== '' ? mb_substr($derivedTitle, 0, 255) : 'Untitled evidence',
+                'evidence_type' => EvidenceType::OTHER,
+            ],
+            file: $file,
+        );
     }
 
     /**

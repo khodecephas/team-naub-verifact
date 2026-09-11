@@ -1,9 +1,13 @@
 <?php
 
 use App\Http\Controllers\CaseController;
+use App\Http\Controllers\CustodyController;
+use App\Http\Controllers\CustodyRequestController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EvidenceController;
+use App\Http\Controllers\EvidenceVerificationComparisonController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ReportController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -47,9 +51,51 @@ Route::middleware('auth')->group(function () {
     */
     Route::controller(EvidenceController::class)->group(function () {
         Route::get('/evidence', 'index')->name('evidence.index');
-        Route::get('/evidence/{evidence}', 'show')->name('evidence.show');
+        Route::get('/evidence/quick-ingest', 'quickCreate')->name('evidence.quick-ingest.create');
+        Route::post('/evidence/quick-ingest', 'quickStore')->name('evidence.quick-ingest.store');
         Route::get('/cases/{caseFile}/evidence/create', 'create')->name('evidence.create');
         Route::post('/cases/{caseFile}/evidence', 'store')->name('evidence.store');
+        Route::patch('/evidence/{evidence}/complete-intake', 'completeIntake')
+            ->name('evidence.intake.complete');
+        Route::get('/evidence/{evidence}/file', 'viewFile')->name('evidence.file.view');
+        Route::post('/evidence/{evidence}/verify', 'verify')->name('evidence.verify');
+        Route::post('/evidence/{evidence}/derivatives', 'issueWorkingCopy')
+            ->name('evidence.derivatives.store');
+        Route::get('/evidence/{evidence}/derivatives/{derivative}/download', 'downloadDerivative')
+            ->name('evidence.derivatives.download');
+        Route::post('/evidence/{evidence}/derivatives/{derivative}/revoke', 'revokeDerivative')
+            ->name('evidence.derivatives.revoke');
+        Route::post('/evidence/{evidence}/custody-transfers', 'transferCustody')
+            ->name('evidence.custody-transfers.store');
+        Route::get('/evidence/{evidence}', 'show')->name('evidence.show');
+    });
+
+    Route::controller(EvidenceVerificationComparisonController::class)->group(function () {
+        Route::get('/verify', 'index')->name('verification.index');
+        Route::post('/verify/{evidence}', 'store')->name('verification.store');
+    });
+
+    /*
+        Chain of Custody
+    */
+    Route::get('/custody', [CustodyController::class, 'index'])->name('custody.index');
+    Route::controller(CustodyRequestController::class)->group(function () {
+        Route::post('/evidence/{evidence}/custody-requests', 'store')->name('custody.requests.store');
+        Route::post('/custody/requests/{custodyRequest}/approve', 'approve')->name('custody.requests.approve');
+        Route::post('/custody/requests/{custodyRequest}/reject', 'reject')->name('custody.requests.reject');
+        Route::post('/custody/requests/{custodyRequest}/cancel', 'cancel')->name('custody.requests.cancel');
+    });
+
+    /*
+        Non-Technical Reports
+    */
+    Route::controller(ReportController::class)->group(function () {
+        Route::get('/reports', 'index')->name('reports.index');
+        Route::get('/reports/create', 'create')->name('reports.create');
+        Route::post('/reports', 'store')->name('reports.store');
+        Route::get('/reports/{report}/download', 'download')->name('reports.download');
+        Route::get('/reports/{report}', 'show')->name('reports.show');
+        Route::post('/reports/{report}/finalize', 'finalize')->name('reports.finalize');
     });
 });
 

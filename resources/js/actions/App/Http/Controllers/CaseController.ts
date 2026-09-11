@@ -123,7 +123,7 @@ store.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\CaseController::show
-* @see app/Http/Controllers/CaseController.php:122
+* @see app/Http/Controllers/CaseController.php:121
 * @route '/cases/{caseFile}'
 */
 export const show = (args: { caseFile: string | { case_number: string } } | [caseFile: string | { case_number: string } ] | string | { case_number: string }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -138,7 +138,7 @@ show.definition = {
 
 /**
 * @see \App\Http\Controllers\CaseController::show
-* @see app/Http/Controllers/CaseController.php:122
+* @see app/Http/Controllers/CaseController.php:121
 * @route '/cases/{caseFile}'
 */
 show.url = (args: { caseFile: string | { case_number: string } } | [caseFile: string | { case_number: string } ] | string | { case_number: string }, options?: RouteQueryOptions) => {
@@ -171,7 +171,7 @@ show.url = (args: { caseFile: string | { case_number: string } } | [caseFile: st
 
 /**
 * @see \App\Http\Controllers\CaseController::show
-* @see app/Http/Controllers/CaseController.php:122
+* @see app/Http/Controllers/CaseController.php:121
 * @route '/cases/{caseFile}'
 */
 show.get = (args: { caseFile: string | { case_number: string } } | [caseFile: string | { case_number: string } ] | string | { case_number: string }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -181,7 +181,7 @@ show.get = (args: { caseFile: string | { case_number: string } } | [caseFile: st
 
 /**
 * @see \App\Http\Controllers\CaseController::show
-* @see app/Http/Controllers/CaseController.php:122
+* @see app/Http/Controllers/CaseController.php:121
 * @route '/cases/{caseFile}'
 */
 show.head = (args: { caseFile: string | { case_number: string } } | [caseFile: string | { case_number: string } ] | string | { case_number: string }, options?: RouteQueryOptions): RouteDefinition<'head'> => ({

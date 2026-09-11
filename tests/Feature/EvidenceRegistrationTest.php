@@ -96,7 +96,7 @@ class EvidenceRegistrationTest extends TestCase
         $this->assertSame(hash('sha256', $content), $evidence->sha256_baseline);
     }
 
-    public function test_newly_registered_evidence_starts_as_baseline_established(): void
+    public function test_newly_registered_evidence_is_verified_before_the_record_is_committed(): void
     {
         $case = CaseFile::factory()->create();
         $registrar = User::factory()->create();
@@ -108,7 +108,14 @@ class EvidenceRegistrationTest extends TestCase
             UploadedFile::fake()->create('image.bin', 10),
         );
 
-        $this->assertSame(IntegrityStatus::BASELINE_ESTABLISHED, $evidence->integrity_status);
+        $this->assertSame(IntegrityStatus::VERIFIED, $evidence->integrity_status);
+        $this->assertDatabaseHas('evidence_verifications', [
+            'evidence_id' => $evidence->id,
+            'baseline_sha256' => $evidence->sha256_baseline,
+            'observed_sha256' => $evidence->sha256_baseline,
+            'matches_baseline' => true,
+            'verified_by' => $registrar->id,
+        ]);
     }
 
     public function test_evidence_belongs_to_the_case_it_was_registered_under(): void
@@ -229,6 +236,40 @@ class EvidenceRegistrationTest extends TestCase
 
         $this->assertSame(hash('sha256', 'real content'), $evidence->sha256_baseline);
         $this->assertNotSame(str_repeat('a', 64), $evidence->sha256_baseline);
-        $this->assertSame(IntegrityStatus::BASELINE_ESTABLISHED, $evidence->integrity_status);
+        $this->assertSame(IntegrityStatus::VERIFIED, $evidence->integrity_status);
+    }
+
+    public function test_the_evidence_index_only_lists_evidence_from_cases_the_user_can_see(): void
+    {
+        $visibleCase = CaseFile::factory()->create();
+        $hiddenCase = CaseFile::factory()->create();
+        $outsider = User::factory()->role(UserRole::INVESTIGATOR)->create();
+
+        CaseAssignment::factory()->create([
+            'case_id' => $visibleCase->id,
+            'user_id' => $outsider->id,
+        ]);
+
+        $visibleEvidence = EvidenceRegistrationService::register(
+            $visibleCase,
+            $outsider,
+            ['title' => 'Visible evidence', 'evidence_type' => EvidenceType::DISK_IMAGE],
+            UploadedFile::fake()->create('visible.bin', 10),
+        );
+
+        $hiddenEvidence = EvidenceRegistrationService::register(
+            $hiddenCase,
+            User::factory()->create(),
+            ['title' => 'Hidden evidence', 'evidence_type' => EvidenceType::DISK_IMAGE],
+            UploadedFile::fake()->create('hidden.bin', 10),
+        );
+
+        $response = $this->actingAs($outsider)->get(route('evidence.index'));
+
+        $response->assertOk();
+        $evidenceIds = collect($response->original->getData()['page']['props']['evidence']['data'])->pluck('id');
+
+        $this->assertContains($visibleEvidence->id, $evidenceIds);
+        $this->assertNotContains($hiddenEvidence->id, $evidenceIds);
     }
 }

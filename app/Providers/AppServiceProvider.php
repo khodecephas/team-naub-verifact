@@ -3,9 +3,16 @@
 namespace App\Providers;
 
 use App\Models\CaseFile;
+use App\Models\CustodyRequest;
 use App\Models\Evidence;
+use App\Models\EvidenceDerivative;
+use App\Models\PhysicalSource;
+use App\Models\Report;
 use App\Policies\CaseFilePolicy;
+use App\Policies\CustodyRequestPolicy;
+use App\Policies\EvidenceDerivativePolicy;
 use App\Policies\EvidencePolicy;
+use App\Policies\ReportPolicy;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Gate;
@@ -38,7 +45,10 @@ class AppServiceProvider extends ServiceProvider
         JsonResource::withoutWrapping();
 
         Gate::policy(CaseFile::class, CaseFilePolicy::class);
+        Gate::policy(CustodyRequest::class, CustodyRequestPolicy::class);
         Gate::policy(Evidence::class, EvidencePolicy::class);
+        Gate::policy(EvidenceDerivative::class, EvidenceDerivativePolicy::class);
+        Gate::policy(Report::class, ReportPolicy::class);
 
         // Enforced from the start so every future polymorphic relation (evidence
         // integrity checks, custody events, findings, report items) is forced to
@@ -46,7 +56,9 @@ class AppServiceProvider extends ServiceProvider
         // model later then can't silently orphan historical rows. Entries are
         // added here as each model is introduced in later phases.
         Relation::enforceMorphMap([
-            //
+            'evidence' => Evidence::class,
+            'evidence_derivative' => EvidenceDerivative::class,
+            'physical_source' => PhysicalSource::class,
         ]);
     }
 }
