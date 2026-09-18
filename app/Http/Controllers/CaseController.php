@@ -5,12 +5,16 @@ namespace App\Http\Controllers;
 use App\Enums\CaseStatus;
 use App\Enums\IdentifierScope;
 use App\Enums\IntegrityStatus;
+use App\Enums\ReportStatus;
 use App\Http\Requests\CaseStoreRequest;
 use App\Http\Resources\CaseSummaryResource;
 use App\Http\Resources\EvidenceResource;
 use App\Models\CaseFile;
 use App\Models\Evidence;
+use App\Models\EvidenceCustodyEvent;
 use App\Models\PhysicalSource;
+use App\Models\Report;
+use App\Services\EvidenceCustodyService;
 use App\Services\IdentifierService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -165,7 +169,7 @@ class CaseController extends Controller
      * built only from timestamps that actually exist. Custody remains
      * attached to individual evidence records rather than to the case.
      */
-    public function show(CaseFile $caseFile): Response
+    public function show(Request $request, CaseFile $caseFile): Response
     {
         $this->authorize('view', $caseFile);
 
@@ -175,7 +179,9 @@ class CaseController extends Controller
             'closer:id,name',
             'assignments.user:id,name,role',
             'assignments.assignedBy:id,name',
-            'evidence' => fn ($query) => $query->with('registeredBy:id,name')->latest('registered_at'),
+            'evidence' => fn ($query) => $query
+                ->with(['registeredBy:id,name', 'currentCustodian:id,name'])
+                ->latest('registered_at'),
             'physicalSources:id,case_id,label,source_type',
         ]);
 
@@ -210,7 +216,77 @@ class CaseController extends Controller
             'timeline' => $this->timeline($caseFile),
             'canArchive' => $caseFile->status !== CaseStatus::ARCHIVED && Gate::allows('close', $caseFile),
             'canRegisterEvidence' => Gate::allows('register', [Evidence::class, $caseFile]),
+            'custody' => $this->custody($caseFile),
+            'reports' => $this->reports($caseFile),
+            'canCreateReport' => Gate::allows('create', [Report::class, $caseFile]),
+            'initialTab' => in_array($request->string('tab')->toString(), ['overview', 'evidence', 'custody', 'reports'], true)
+                ? $request->string('tab')->toString()
+                : 'overview',
         ]);
+    }
+
+    /**
+     * Every report generated from this case, newest first, for the case
+     * record's own Reports tab.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function reports(CaseFile $caseFile): array
+    {
+        return Report::query()
+            ->where('case_id', $caseFile->id)
+            ->with(['generatedBy:id,name'])
+            ->withCount('downloads')
+            ->latest()
+            ->get()
+            ->map(fn (Report $report) => [
+                'report_number' => $report->report_number,
+                'title' => $report->title,
+                'generated_by' => $report->generatedBy->name,
+                'generated_at' => $report->generated_at?->toIso8601String() ?? $report->created_at->toIso8601String(),
+                'status' => $report->status,
+                'content_verified' => $report->status === ReportStatus::DRAFT ? null : $report->hasValidContentHash(),
+                'downloads_count' => $report->downloads_count,
+            ])
+            ->all();
+    }
+
+    /**
+     * Current holdings and the full recorded transfer history for every
+     * evidence item in this case, for the case record's own custody tab.
+     *
+     * @return array{holdings: array<int, array<string, mixed>>, history: array<int, array<string, mixed>>}
+     */
+    private function custody(CaseFile $caseFile): array
+    {
+        $history = EvidenceCustodyEvent::query()
+            ->whereIn('evidence_id', $caseFile->evidence->pluck('id'))
+            ->with(['evidence:id,evidence_number,title', 'fromCustodian:id,name', 'toCustodian:id,name', 'transferredBy:id,name'])
+            ->latest('occurred_at')
+            ->get();
+
+        return [
+            'holdings' => $caseFile->evidence->map(fn (Evidence $evidence) => [
+                'evidence_number' => $evidence->evidence_number,
+                'title' => $evidence->title,
+                'custodian' => $evidence->currentCustodian?->name,
+                'location' => $evidence->current_custody_location,
+                'chain_verified' => EvidenceCustodyService::verifyChain($evidence),
+            ])->all(),
+            'history' => $history->map(fn (EvidenceCustodyEvent $event) => [
+                'id' => $event->id,
+                'evidence_number' => $event->evidence->evidence_number,
+                'evidence_title' => $event->evidence->title,
+                'from_custodian' => $event->fromCustodian?->name,
+                'to_custodian' => $event->toCustodian->name,
+                'performed_by' => $event->transferredBy->name,
+                'purpose' => $event->purpose,
+                'from_location' => $event->from_location,
+                'to_location' => $event->to_location,
+                'method' => $event->transfer_method,
+                'occurred_at' => $event->occurred_at->toIso8601String(),
+            ])->all(),
+        ];
     }
 
     /**

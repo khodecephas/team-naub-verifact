@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, applyUrlDefaults } from './../../../../wayfinder'
 /**
 * @see \App\Http\Controllers\CaseController::index
-* @see app/Http/Controllers/CaseController.php:31
+* @see app/Http/Controllers/CaseController.php:33
 * @route '/cases'
 */
 export const index = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -16,7 +16,7 @@ index.definition = {
 
 /**
 * @see \App\Http\Controllers\CaseController::index
-* @see app/Http/Controllers/CaseController.php:31
+* @see app/Http/Controllers/CaseController.php:33
 * @route '/cases'
 */
 index.url = (options?: RouteQueryOptions) => {
@@ -25,7 +25,7 @@ index.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\CaseController::index
-* @see app/Http/Controllers/CaseController.php:31
+* @see app/Http/Controllers/CaseController.php:33
 * @route '/cases'
 */
 index.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -35,7 +35,7 @@ index.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\CaseController::index
-* @see app/Http/Controllers/CaseController.php:31
+* @see app/Http/Controllers/CaseController.php:33
 * @route '/cases'
 */
 index.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -45,7 +45,7 @@ index.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
 /**
 * @see \App\Http\Controllers\CaseController::exportMethod
-* @see app/Http/Controllers/CaseController.php:94
+* @see app/Http/Controllers/CaseController.php:96
 * @route '/cases-export.csv'
 */
 export const exportMethod = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -60,7 +60,7 @@ exportMethod.definition = {
 
 /**
 * @see \App\Http\Controllers\CaseController::exportMethod
-* @see app/Http/Controllers/CaseController.php:94
+* @see app/Http/Controllers/CaseController.php:96
 * @route '/cases-export.csv'
 */
 exportMethod.url = (options?: RouteQueryOptions) => {
@@ -69,7 +69,7 @@ exportMethod.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\CaseController::exportMethod
-* @see app/Http/Controllers/CaseController.php:94
+* @see app/Http/Controllers/CaseController.php:96
 * @route '/cases-export.csv'
 */
 exportMethod.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -79,7 +79,7 @@ exportMethod.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\CaseController::exportMethod
-* @see app/Http/Controllers/CaseController.php:94
+* @see app/Http/Controllers/CaseController.php:96
 * @route '/cases-export.csv'
 */
 exportMethod.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -89,7 +89,7 @@ exportMethod.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
 /**
 * @see \App\Http\Controllers\CaseController::create
-* @see app/Http/Controllers/CaseController.php:129
+* @see app/Http/Controllers/CaseController.php:131
 * @route '/cases/create'
 */
 export const create = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -104,7 +104,7 @@ create.definition = {
 
 /**
 * @see \App\Http\Controllers\CaseController::create
-* @see app/Http/Controllers/CaseController.php:129
+* @see app/Http/Controllers/CaseController.php:131
 * @route '/cases/create'
 */
 create.url = (options?: RouteQueryOptions) => {
@@ -113,7 +113,7 @@ create.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\CaseController::create
-* @see app/Http/Controllers/CaseController.php:129
+* @see app/Http/Controllers/CaseController.php:131
 * @route '/cases/create'
 */
 create.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -123,7 +123,7 @@ create.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\CaseController::create
-* @see app/Http/Controllers/CaseController.php:129
+* @see app/Http/Controllers/CaseController.php:131
 * @route '/cases/create'
 */
 create.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -133,7 +133,7 @@ create.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
 /**
 * @see \App\Http\Controllers\CaseController::store
-* @see app/Http/Controllers/CaseController.php:143
+* @see app/Http/Controllers/CaseController.php:145
 * @route '/cases'
 */
 export const store = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -148,7 +148,7 @@ store.definition = {
 
 /**
 * @see \App\Http\Controllers\CaseController::store
-* @see app/Http/Controllers/CaseController.php:143
+* @see app/Http/Controllers/CaseController.php:145
 * @route '/cases'
 */
 store.url = (options?: RouteQueryOptions) => {
@@ -157,7 +157,7 @@ store.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\CaseController::store
-* @see app/Http/Controllers/CaseController.php:143
+* @see app/Http/Controllers/CaseController.php:145
 * @route '/cases'
 */
 store.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -167,7 +167,7 @@ store.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\CaseController::show
-* @see app/Http/Controllers/CaseController.php:168
+* @see app/Http/Controllers/CaseController.php:170
 * @route '/cases/{caseFile}'
 */
 export const show = (args: { caseFile: string | { case_number: string } } | [caseFile: string | { case_number: string } ] | string | { case_number: string }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -182,7 +182,7 @@ show.definition = {
 
 /**
 * @see \App\Http\Controllers\CaseController::show
-* @see app/Http/Controllers/CaseController.php:168
+* @see app/Http/Controllers/CaseController.php:170
 * @route '/cases/{caseFile}'
 */
 show.url = (args: { caseFile: string | { case_number: string } } | [caseFile: string | { case_number: string } ] | string | { case_number: string }, options?: RouteQueryOptions) => {
@@ -215,7 +215,7 @@ show.url = (args: { caseFile: string | { case_number: string } } | [caseFile: st
 
 /**
 * @see \App\Http\Controllers\CaseController::show
-* @see app/Http/Controllers/CaseController.php:168
+* @see app/Http/Controllers/CaseController.php:170
 * @route '/cases/{caseFile}'
 */
 show.get = (args: { caseFile: string | { case_number: string } } | [caseFile: string | { case_number: string } ] | string | { case_number: string }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -225,7 +225,7 @@ show.get = (args: { caseFile: string | { case_number: string } } | [caseFile: st
 
 /**
 * @see \App\Http\Controllers\CaseController::show
-* @see app/Http/Controllers/CaseController.php:168
+* @see app/Http/Controllers/CaseController.php:170
 * @route '/cases/{caseFile}'
 */
 show.head = (args: { caseFile: string | { case_number: string } } | [caseFile: string | { case_number: string } ] | string | { case_number: string }, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -235,7 +235,7 @@ show.head = (args: { caseFile: string | { case_number: string } } | [caseFile: s
 
 /**
 * @see \App\Http\Controllers\CaseController::archive
-* @see app/Http/Controllers/CaseController.php:222
+* @see app/Http/Controllers/CaseController.php:268
 * @route '/cases/{caseFile}/archive'
 */
 export const archive = (args: { caseFile: string | { case_number: string } } | [caseFile: string | { case_number: string } ] | string | { case_number: string }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -250,7 +250,7 @@ archive.definition = {
 
 /**
 * @see \App\Http\Controllers\CaseController::archive
-* @see app/Http/Controllers/CaseController.php:222
+* @see app/Http/Controllers/CaseController.php:268
 * @route '/cases/{caseFile}/archive'
 */
 archive.url = (args: { caseFile: string | { case_number: string } } | [caseFile: string | { case_number: string } ] | string | { case_number: string }, options?: RouteQueryOptions) => {
@@ -283,7 +283,7 @@ archive.url = (args: { caseFile: string | { case_number: string } } | [caseFile:
 
 /**
 * @see \App\Http\Controllers\CaseController::archive
-* @see app/Http/Controllers/CaseController.php:222
+* @see app/Http/Controllers/CaseController.php:268
 * @route '/cases/{caseFile}/archive'
 */
 archive.post = (args: { caseFile: string | { case_number: string } } | [caseFile: string | { case_number: string } ] | string | { case_number: string }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({

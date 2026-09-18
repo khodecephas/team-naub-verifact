@@ -4,7 +4,6 @@ import ProfileController from './ProfileController'
 import CaseController from './CaseController'
 import EvidenceController from './EvidenceController'
 import EvidenceVerificationComparisonController from './EvidenceVerificationComparisonController'
-import CustodyController from './CustodyController'
 import CustodyRequestController from './CustodyRequestController'
 import ReportController from './ReportController'
 import Auth from './Auth'
@@ -16,7 +15,6 @@ const Controllers = {
     CaseController: Object.assign(CaseController, CaseController),
     EvidenceController: Object.assign(EvidenceController, EvidenceController),
     EvidenceVerificationComparisonController: Object.assign(EvidenceVerificationComparisonController, EvidenceVerificationComparisonController),
-    CustodyController: Object.assign(CustodyController, CustodyController),
     CustodyRequestController: Object.assign(CustodyRequestController, CustodyRequestController),
     ReportController: Object.assign(ReportController, ReportController),
     Auth: Object.assign(Auth, Auth),

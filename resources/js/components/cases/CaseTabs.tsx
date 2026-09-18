@@ -1,13 +1,9 @@
-import CustodyController from '@/actions/App/Http/Controllers/CustodyController';
-import ReportController from '@/actions/App/Http/Controllers/ReportController';
-import { Link } from '@inertiajs/react';
-
-export type CaseTab = 'overview' | 'evidence';
+export type CaseTab = 'overview' | 'evidence' | 'custody' | 'reports';
 
 interface CaseTabsProps {
     activeTab: CaseTab;
     evidenceCount: number;
-    caseNumber: string;
+    reportsCount: number;
     onChange: (tab: CaseTab) => void;
 }
 
@@ -26,7 +22,7 @@ function tabClassName(isActive: boolean): string {
     ].join(' ');
 }
 
-export function CaseTabs({ activeTab, evidenceCount, caseNumber, onChange }: CaseTabsProps) {
+export function CaseTabs({ activeTab, evidenceCount, reportsCount, onChange }: CaseTabsProps) {
     return (
         <nav
             aria-label="Case record sections"
@@ -46,15 +42,18 @@ export function CaseTabs({ activeTab, evidenceCount, caseNumber, onChange }: Cas
                     Overview
                 </button>
 
-                <Link
-                    href={CustodyController.index({ query: { case: caseNumber } })}
-                    className={tabClassName(false)}
+                <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeTab === 'custody'}
+                    onClick={() => onChange('custody')}
+                    className={tabClassName(activeTab === 'custody')}
                 >
                     <span aria-hidden="true" className="material-symbols-outlined text-[17px]">
                         history_edu
                     </span>
                     Chain of Custody
-                </Link>
+                </button>
 
                 <button
                     type="button"
@@ -95,15 +94,25 @@ export function CaseTabs({ activeTab, evidenceCount, caseNumber, onChange }: Cas
                     </button>
                 ))}
 
-                <Link
-                    href={ReportController.index({ query: { case: caseNumber } })}
-                    className={tabClassName(false)}
+                <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeTab === 'reports'}
+                    onClick={() => onChange('reports')}
+                    className={tabClassName(activeTab === 'reports')}
                 >
                     <span aria-hidden="true" className="material-symbols-outlined text-[17px]">
                         picture_as_pdf
                     </span>
                     Generated Reports
-                </Link>
+                    <span
+                        className={`rounded px-1.5 py-0.5 text-[10px] ${
+                            activeTab === 'reports' ? 'bg-white/15 text-white' : 'bg-white text-slate-600'
+                        }`}
+                    >
+                        {reportsCount}
+                    </span>
+                </button>
             </div>
         </nav>
     );

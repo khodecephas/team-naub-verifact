@@ -244,11 +244,14 @@ class CustodyWorkflowTest extends TestCase
         $this->assertSame($baseline, $evidence->refresh()->sha256_baseline);
     }
 
-    public function test_authenticated_user_can_open_custody_dashboard(): void
+    public function test_case_show_page_includes_its_chain_of_custody(): void
     {
-        [$holder] = $this->custodyContext();
-        $this->actingAs($holder)->get(route('custody.index'))->assertOk()->assertInertia(
-            fn ($page) => $page->component('Custody/Index')->has('holdings', 1),
+        [$holder, , $evidence, $case] = $this->custodyContext();
+        $this->actingAs($holder)->get(route('cases.show', $case))->assertOk()->assertInertia(
+            fn ($page) => $page->component('Cases/Show')
+                ->has('custody.holdings', 1)
+                ->where('custody.holdings.0.evidence_number', $evidence->evidence_number)
+                ->where('custody.holdings.0.chain_verified', true),
         );
     }
 

@@ -1,5 +1,4 @@
 import CaseController from "@/actions/App/Http/Controllers/CaseController";
-import CustodyController from "@/actions/App/Http/Controllers/CustodyController";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -302,8 +301,8 @@ export default function Index({
                         Vault
                     </Link>
                     <Link
-                        href={CustodyController.index({
-                            query: { case: row.original.case_number },
+                        href={CaseController.show(row.original.case_number, {
+                            query: { tab: "custody" },
                         })}
                         title="Open custody records"
                         aria-label={`Open custody records for ${row.original.case_number}`}

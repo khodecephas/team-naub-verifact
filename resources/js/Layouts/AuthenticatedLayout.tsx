@@ -1,6 +1,5 @@
 import AuthenticatedSessionController from "@/actions/App/Http/Controllers/Auth/AuthenticatedSessionController";
 import CaseController from "@/actions/App/Http/Controllers/CaseController";
-import CustodyController from "@/actions/App/Http/Controllers/CustodyController";
 import DashboardController from "@/actions/App/Http/Controllers/DashboardController";
 import EvidenceController from "@/actions/App/Http/Controllers/EvidenceController";
 import EvidenceVerificationComparisonController from "@/actions/App/Http/Controllers/EvidenceVerificationComparisonController";
@@ -33,7 +32,6 @@ const navigationItems: NavigationItem[] = [
         href: EvidenceController.index().url,
         icon: "inventory_2",
     },
-    { label: "Custody", href: CustodyController.index().url, icon: "link" },
     {
         label: "Verify",
         href: EvidenceVerificationComparisonController.index().url,

@@ -1,5 +1,4 @@
 import CaseController from "@/actions/App/Http/Controllers/CaseController";
-import CustodyController from "@/actions/App/Http/Controllers/CustodyController";
 import EvidenceController from "@/actions/App/Http/Controllers/EvidenceController";
 import EvidenceVerificationComparisonController from "@/actions/App/Http/Controllers/EvidenceVerificationComparisonController";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -367,8 +366,9 @@ export default function Dashboard({
                                         Review custody requests and transfers
                                     </p>
                                     <p className="mt-1 text-xs leading-5 text-slate-500">
-                                        Open the custody workspace to review
-                                        holdings, pending requests, and history.
+                                        Requests and transfers are reviewed
+                                        from each evidence record, or from a
+                                        case's Chain of Custody tab.
                                     </p>
                                     <Button
                                         className="mt-4"
@@ -376,8 +376,8 @@ export default function Dashboard({
                                         variant="outline"
                                         asChild
                                     >
-                                        <Link href={CustodyController.index()}>
-                                            Open custody queue
+                                        <Link href={EvidenceController.index()}>
+                                            Open evidence register
                                         </Link>
                                     </Button>
                                 </div>

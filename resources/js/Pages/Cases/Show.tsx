@@ -1,8 +1,10 @@
 import CaseController from "@/actions/App/Http/Controllers/CaseController";
 import EvidenceController from "@/actions/App/Http/Controllers/EvidenceController";
 import ReportController from "@/actions/App/Http/Controllers/ReportController";
+import { CaseCustodyRegister } from "@/components/cases/CaseCustodyRegister";
 import { CaseEvidenceRegister } from "@/components/cases/CaseEvidenceRegister";
 import { CaseOverview } from "@/components/cases/CaseOverview";
+import { CaseReportsRegister } from "@/components/cases/CaseReportsRegister";
 import { CaseTab, CaseTabs } from "@/components/cases/CaseTabs";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -10,9 +12,11 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { useNotificationDialog } from "@/components/notifications/NotificationDialogProvider";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import {
+    CaseCustody,
     CaseDetail,
     CaseIntegritySummary,
     CasePersonnel,
+    CaseReport,
     CaseTimelineEntry,
     PhysicalSourceSummary,
 } from "@/types/case";
@@ -29,6 +33,10 @@ interface ShowProps {
     timeline: CaseTimelineEntry[];
     canArchive: boolean;
     canRegisterEvidence: boolean;
+    custody: CaseCustody;
+    reports: CaseReport[];
+    canCreateReport: boolean;
+    initialTab: CaseTab;
 }
 
 function formatDate(value: string | null): string {
@@ -81,8 +89,12 @@ export default function Show({
     timeline,
     canArchive,
     canRegisterEvidence,
+    custody,
+    reports,
+    canCreateReport,
+    initialTab,
 }: ShowProps) {
-    const [activeTab, setActiveTab] = useState<CaseTab>("overview");
+    const [activeTab, setActiveTab] = useState<CaseTab>(initialTab);
     const { confirm } = useNotificationDialog();
 
     const archiveCase = async () => {
@@ -243,7 +255,7 @@ export default function Show({
                 <CaseTabs
                     activeTab={activeTab}
                     evidenceCount={evidence.length}
-                    caseNumber={caseFile.case_number}
+                    reportsCount={reports.length}
                     onChange={setActiveTab}
                 />
 
@@ -257,11 +269,23 @@ export default function Show({
                         physicalSourceCount={physicalSources.length}
                         canRegisterEvidence={canRegisterEvidence}
                     />
+                ) : activeTab === "custody" ? (
+                    <CaseCustodyRegister
+                        holdings={custody.holdings}
+                        history={custody.history}
+                    />
+                ) : activeTab === "reports" ? (
+                    <CaseReportsRegister
+                        reports={reports}
+                        caseNumber={caseFile.case_number}
+                        canCreateReport={canCreateReport}
+                    />
                 ) : (
                     <CaseEvidenceRegister
                         evidence={evidence}
                         physicalSources={physicalSources}
                         caseNumber={caseFile.case_number}
+                        onOpenCustody={() => setActiveTab("custody")}
                     />
                 )}
             </div>

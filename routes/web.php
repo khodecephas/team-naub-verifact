@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\CaseController;
-use App\Http\Controllers\CustodyController;
 use App\Http\Controllers\CustodyRequestController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EvidenceController;
@@ -86,7 +85,6 @@ Route::middleware('auth')->group(function () {
     /*
         Chain of Custody
     */
-    Route::get('/custody', [CustodyController::class, 'index'])->name('custody.index');
     Route::controller(CustodyRequestController::class)->group(function () {
         Route::post('/evidence/{evidence}/custody-requests', 'store')->name('custody.requests.store');
         Route::post('/custody/requests/{custodyRequest}/approve', 'approve')->name('custody.requests.approve');

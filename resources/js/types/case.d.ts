@@ -56,6 +56,43 @@ export interface CaseIntegritySummary {
     integrity_failure: number;
 }
 
+export interface CaseCustodyHolding {
+    evidence_number: string;
+    title: string;
+    custodian: string | null;
+    location: string | null;
+    chain_verified: boolean;
+}
+
+export interface CaseCustodyEvent {
+    id: number;
+    evidence_number: string;
+    evidence_title: string;
+    from_custodian: string | null;
+    to_custodian: string;
+    performed_by: string;
+    purpose: string;
+    from_location: string | null;
+    to_location: string | null;
+    method: string;
+    occurred_at: string;
+}
+
+export interface CaseCustody {
+    holdings: CaseCustodyHolding[];
+    history: CaseCustodyEvent[];
+}
+
+export interface CaseReport {
+    report_number: string;
+    title: string;
+    generated_by: string;
+    generated_at: string;
+    status: string;
+    content_verified: boolean | null;
+    downloads_count: number;
+}
+
 export interface PaginatedData<T> {
     data: T[];
     links: { url: string | null; label: string; active: boolean }[];

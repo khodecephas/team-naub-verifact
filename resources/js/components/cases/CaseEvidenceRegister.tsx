@@ -1,5 +1,4 @@
 import EvidenceController from "@/actions/App/Http/Controllers/EvidenceController";
-import CustodyController from "@/actions/App/Http/Controllers/CustodyController";
 import EvidenceVerificationComparisonController from "@/actions/App/Http/Controllers/EvidenceVerificationComparisonController";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -15,6 +14,7 @@ interface CaseEvidenceRegisterProps {
     evidence: Evidence[];
     physicalSources: PhysicalSourceSummary[];
     caseNumber: string;
+    onOpenCustody: () => void;
 }
 
 function formatDate(value: string): string {
@@ -75,6 +75,7 @@ export function CaseEvidenceRegister({
     evidence,
     physicalSources,
     caseNumber,
+    onOpenCustody,
 }: CaseEvidenceRegisterProps) {
     const columns: ColumnDef<Evidence, unknown>[] = [
         {
@@ -158,16 +159,16 @@ export function CaseEvidenceRegister({
                             Inspect
                         </Link>
                     </Button>
-                    <Button size="icon" variant="ghost" asChild>
-                        <Link
-                            href={CustodyController.index({ query: { case: caseNumber } })}
-                            title={`View custody history for ${row.original.evidence_number}`}
-                            aria-label={`View custody history for ${row.original.evidence_number}`}
-                        >
-                            <span aria-hidden="true" className="material-symbols-outlined text-[17px]">
-                                history
-                            </span>
-                        </Link>
+                    <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={onOpenCustody}
+                        title={`View custody history for ${row.original.evidence_number}`}
+                        aria-label={`View custody history for ${row.original.evidence_number}`}
+                    >
+                        <span aria-hidden="true" className="material-symbols-outlined text-[17px]">
+                            history
+                        </span>
                     </Button>
                     <Button size="icon" variant="ghost" asChild>
                         <Link
@@ -264,10 +265,8 @@ export function CaseEvidenceRegister({
                         title="Physical custody"
                         description="Storage and locker assignment"
                         action={
-                            <Button size="sm" variant="outline" asChild>
-                                <Link href={CustodyController.index({ query: { case: caseNumber } })}>
-                                    Manage custody
-                                </Link>
+                            <Button size="sm" variant="outline" onClick={onOpenCustody}>
+                                Manage custody
                             </Button>
                         }
                     />
