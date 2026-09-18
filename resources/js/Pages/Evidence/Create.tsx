@@ -2,10 +2,11 @@ import EvidenceController from "@/actions/App/Http/Controllers/EvidenceControlle
 import InputError from "@/Components/InputError";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useNotificationDialog } from "@/components/notifications/NotificationDialogProvider";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { formatBytes } from "@/lib/utils";
 import { Head, Link, useForm } from "@inertiajs/react";
-import { FormEventHandler, useState } from "react";
+import { FormEventHandler, useEffect, useState } from "react";
 
 interface PhysicalSourceOption {
     id: number;
@@ -74,6 +75,8 @@ export default function Create({
     const [witness, setWitness] = useState("");
     const [warrantRef, setWarrantRef] = useState("");
     const [handlingNotes, setHandlingNotes] = useState("");
+    const { notify } = useNotificationDialog();
+    const draftKey = `h1-evidence-intake-draft-${caseFile.case_number}`;
 
     const { data, setData, post, processing, errors, transform } = useForm<{
         physical_source_id: string;
@@ -88,6 +91,30 @@ export default function Create({
         evidence_type: evidenceTypes[0] ?? "",
         file: null,
     });
+
+    useEffect(() => {
+        const storedDraft = window.localStorage.getItem(draftKey);
+        if (!storedDraft) return;
+
+        try {
+            const draft = JSON.parse(storedDraft) as Record<string, unknown>;
+            setClassification(draft.classification === "physical" ? "physical" : "digital");
+            setSourceOrigin(typeof draft.sourceOrigin === "string" ? draft.sourceOrigin : "");
+            setAcquiredAt(typeof draft.acquiredAt === "string" ? draft.acquiredAt : "");
+            setCustodian(typeof draft.custodian === "string" ? draft.custodian : auth.user.name);
+            setWitness(typeof draft.witness === "string" ? draft.witness : "");
+            setWarrantRef(typeof draft.warrantRef === "string" ? draft.warrantRef : "");
+            setHandlingNotes(typeof draft.handlingNotes === "string" ? draft.handlingNotes : "");
+            setData((current) => ({
+                ...current,
+                physical_source_id: typeof draft.physical_source_id === "string" ? draft.physical_source_id : "",
+                title: typeof draft.title === "string" ? draft.title : "",
+                evidence_type: typeof draft.evidence_type === "string" ? draft.evidence_type : current.evidence_type,
+            }));
+        } catch {
+            window.localStorage.removeItem(draftKey);
+        }
+    }, [auth.user.name, draftKey, setData]);
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
@@ -112,6 +139,30 @@ export default function Create({
         // otherwise defaults to a JSON-encoded request that can't carry it.
         post(EvidenceController.store(caseFile.case_number).url, {
             forceFormData: true,
+            onSuccess: () => window.localStorage.removeItem(draftKey),
+        });
+    };
+
+    const saveDraft = () => {
+        window.localStorage.setItem(
+            draftKey,
+            JSON.stringify({
+                classification,
+                physical_source_id: data.physical_source_id,
+                title: data.title,
+                evidence_type: data.evidence_type,
+                sourceOrigin,
+                acquiredAt,
+                custodian,
+                witness,
+                warrantRef,
+                handlingNotes,
+            }),
+        );
+        notify({
+            title: "Evidence draft saved",
+            message: "The metadata is saved in this browser. Select the evidence file again when you return because files are never retained in browser drafts.",
+            tone: "success",
         });
     };
 
@@ -651,8 +702,7 @@ export default function Create({
                                     <Button
                                         variant="outline"
                                         type="button"
-                                        disabled
-                                        title="Draft persistence isn't available yet"
+                                        onClick={saveDraft}
                                     >
                                         <span className="material-symbols-outlined text-[18px]">
                                             save

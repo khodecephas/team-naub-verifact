@@ -55,6 +55,9 @@ interface DataTableProps<TData, TValue> {
     rowClassName?: (row: TData) => string | undefined;
     getRowId?: (row: TData) => string;
     emptyMessage?: string;
+    displayMode?: "table" | "grid" | "timeline";
+    renderGridItem?: (row: TData) => ReactNode;
+    renderTimelineItem?: (row: TData) => ReactNode;
 }
 
 /**
@@ -77,6 +80,9 @@ export function DataTable<TData, TValue>({
     rowClassName,
     getRowId,
     emptyMessage = "No results found.",
+    displayMode = "table",
+    renderGridItem,
+    renderTimelineItem,
 }: DataTableProps<TData, TValue>) {
     const { url } = usePage();
     const basePath = url.split("?")[0];
@@ -129,6 +135,13 @@ export function DataTable<TData, TValue>({
 
     const handlePageChange = (page: number) => {
         navigate({ page });
+    };
+
+    const pageUrl = (page: number): string => {
+        const params = new URLSearchParams(currentParams);
+        params.set("page", String(page));
+
+        return `${basePath}?${params.toString()}`;
     };
 
     const visibleData =
@@ -210,7 +223,28 @@ export function DataTable<TData, TValue>({
 
             {bulkActions}
 
-            <div className="overflow-x-auto">
+            {visibleData.length === 0 ? (
+                <p className="px-4 py-8 text-center text-sm text-slate-500">
+                    {emptyMessage}
+                </p>
+            ) : displayMode === "grid" && renderGridItem ? (
+                <div className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-3">
+                    {visibleData.map((row) => (
+                        <div key={getRowId?.(row) ?? String(data.indexOf(row))}>
+                            {renderGridItem(row)}
+                        </div>
+                    ))}
+                </div>
+            ) : displayMode === "timeline" && renderTimelineItem ? (
+                <div className="divide-y divide-slate-100 px-4">
+                    {visibleData.map((row) => (
+                        <div key={getRowId?.(row) ?? String(data.indexOf(row))}>
+                            {renderTimelineItem(row)}
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="overflow-x-auto">
                 <Table>
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
@@ -230,8 +264,7 @@ export function DataTable<TData, TValue>({
                         ))}
                     </TableHeader>
                     <TableBody>
-                        {visibleData.length ? (
-                            table.getRowModel().rows.map((row) => (
+                        {table.getRowModel().rows.map((row) => (
                                 <TableRow
                                     key={row.id}
                                     className={rowClassName?.(row.original)}
@@ -245,20 +278,11 @@ export function DataTable<TData, TValue>({
                                         </TableCell>
                                     ))}
                                 </TableRow>
-                            ))
-                        ) : (
-                            <TableRow>
-                                <TableCell
-                                    colSpan={columns.length}
-                                    className="py-6 text-center text-sm text-slate-500"
-                                >
-                                    {emptyMessage}
-                                </TableCell>
-                            </TableRow>
-                        )}
+                            ))}
                     </TableBody>
                 </Table>
-            </div>
+                </div>
+            )}
 
             {paginate && paginate.last_page > 1 && (
                 <div className="flex flex-col items-center justify-between gap-2 border-t border-slate-100 px-4 py-2 sm:flex-row">
@@ -277,7 +301,7 @@ export function DataTable<TData, TValue>({
                         <PaginationContent className="gap-1">
                             <PaginationItem>
                                 <PaginationPrevious
-                                    href="#"
+                                    href={pageUrl(Math.max(1, paginate.current_page - 1))}
                                     className={cn(
                                         paginate.current_page <= 1 &&
                                             "pointer-events-none opacity-40",
@@ -306,7 +330,11 @@ export function DataTable<TData, TValue>({
                                     return (
                                         <PaginationItem key={i}>
                                             <PaginationLink
-                                                href="#"
+                                                href={
+                                                    isPageNum
+                                                        ? pageUrl(Number(link.label))
+                                                        : link.url ?? undefined
+                                                }
                                                 isActive={link.active}
                                                 onClick={(e) => {
                                                     e.preventDefault();
@@ -327,7 +355,7 @@ export function DataTable<TData, TValue>({
 
                             <PaginationItem>
                                 <PaginationNext
-                                    href="#"
+                                    href={pageUrl(Math.min(paginate.last_page, paginate.current_page + 1))}
                                     className={cn(
                                         paginate.current_page >=
                                             paginate.last_page &&

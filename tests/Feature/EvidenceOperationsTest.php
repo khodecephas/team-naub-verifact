@@ -18,6 +18,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
 use Symfony\Component\HttpFoundation\Response;
@@ -82,6 +83,93 @@ class EvidenceOperationsTest extends TestCase
             'comparison_filename' => 'comparison.bin',
             'verified_by' => $manager->id,
         ]);
+    }
+
+    public function test_comparison_accepts_a_six_megabyte_file_when_the_runtime_limit_allows_it(): void
+    {
+        Storage::fake('local');
+        $contents = str_repeat('a', 6 * 1024 * 1024);
+        [$manager, $evidence] = $this->evidenceForManager($contents);
+
+        $response = $this->actingAs($manager)->post(route('verification.store', $evidence), [
+            'file' => UploadedFile::fake()->createWithContent('comparison.png', $contents),
+        ]);
+
+        $response->assertRedirect(route('verification.index', [
+            'evidence' => $evidence->evidence_number,
+        ]));
+        $response->assertSessionHas('verification_result.matches', true);
+        $this->assertDatabaseHas('evidence_verifications', [
+            'evidence_id' => $evidence->id,
+            'comparison_file_size_bytes' => 6 * 1024 * 1024,
+            'matches_baseline' => true,
+        ]);
+    }
+
+    public function test_chunked_comparison_accepts_six_megabytes_and_discards_temporary_parts(): void
+    {
+        Storage::fake('local');
+        $contents = str_repeat('chunked comparison content', 262144);
+        [$manager, $evidence] = $this->evidenceForManager($contents);
+        $uploadId = (string) Str::uuid();
+        $chunks = str_split($contents, 1024 * 1024);
+
+        foreach ($chunks as $index => $chunk) {
+            $response = $this->actingAs($manager)->post(route('verification.chunks.store', $evidence), [
+                'upload_id' => $uploadId,
+                'chunk' => UploadedFile::fake()->createWithContent("{$index}.part", $chunk),
+                'chunk_index' => $index,
+                'total_chunks' => count($chunks),
+                'total_size' => strlen($contents),
+                'filename' => 'composite (1).png',
+            ], ['Accept' => 'application/json']);
+
+            $response->assertOk()->assertJson([
+                'received' => $index + 1,
+                'total' => count($chunks),
+            ]);
+        }
+
+        $response = $this->actingAs($manager)->postJson(
+            route('verification.chunks.complete', $evidence),
+            ['upload_id' => $uploadId],
+        );
+
+        $response->assertOk()
+            ->assertJsonPath('result.matches', true)
+            ->assertJsonPath('result.comparison_filename', 'composite (1).png')
+            ->assertJsonPath('result.comparison_file_size_bytes', strlen($contents));
+        $this->assertDatabaseHas('evidence_verifications', [
+            'evidence_id' => $evidence->id,
+            'observed_sha256' => hash('sha256', $contents),
+            'matches_baseline' => true,
+            'comparison_file_size_bytes' => strlen($contents),
+        ]);
+        Storage::disk('local')->assertMissing("comparison-uploads/{$manager->id}/{$uploadId}");
+    }
+
+    public function test_chunked_comparison_does_not_finalize_when_a_part_is_missing(): void
+    {
+        Storage::fake('local');
+        [$manager, $evidence] = $this->evidenceForManager('comparison baseline');
+        $uploadId = (string) Str::uuid();
+
+        $this->actingAs($manager)->post(route('verification.chunks.store', $evidence), [
+            'upload_id' => $uploadId,
+            'chunk' => UploadedFile::fake()->createWithContent('0.part', 'first part'),
+            'chunk_index' => 0,
+            'total_chunks' => 2,
+            'total_size' => 20,
+            'filename' => 'incomplete.bin',
+        ], ['Accept' => 'application/json'])->assertOk();
+
+        $this->actingAs($manager)->postJson(
+            route('verification.chunks.complete', $evidence),
+            ['upload_id' => $uploadId],
+        )->assertUnprocessable()->assertJsonValidationErrors('file');
+
+        $this->assertDatabaseCount('evidence_verifications', 1);
+        Storage::disk('local')->assertMissing("comparison-uploads/{$manager->id}/{$uploadId}");
     }
 
     public function test_evidence_comparison_records_a_non_matching_payload_without_changing_the_baseline(): void

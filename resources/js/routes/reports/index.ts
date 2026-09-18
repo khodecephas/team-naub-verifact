@@ -259,7 +259,7 @@ show.head = (args: { report: string | { report_number: string } } | [report: str
 
 /**
 * @see \App\Http\Controllers\ReportController::finalize
-* @see app/Http/Controllers/ReportController.php:197
+* @see app/Http/Controllers/ReportController.php:211
 * @route '/reports/{report}/finalize'
 */
 export const finalize = (args: { report: string | { report_number: string } } | [report: string | { report_number: string } ] | string | { report_number: string }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -274,7 +274,7 @@ finalize.definition = {
 
 /**
 * @see \App\Http\Controllers\ReportController::finalize
-* @see app/Http/Controllers/ReportController.php:197
+* @see app/Http/Controllers/ReportController.php:211
 * @route '/reports/{report}/finalize'
 */
 finalize.url = (args: { report: string | { report_number: string } } | [report: string | { report_number: string } ] | string | { report_number: string }, options?: RouteQueryOptions) => {
@@ -307,7 +307,7 @@ finalize.url = (args: { report: string | { report_number: string } } | [report: 
 
 /**
 * @see \App\Http\Controllers\ReportController::finalize
-* @see app/Http/Controllers/ReportController.php:197
+* @see app/Http/Controllers/ReportController.php:211
 * @route '/reports/{report}/finalize'
 */
 finalize.post = (args: { report: string | { report_number: string } } | [report: string | { report_number: string } ] | string | { report_number: string }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({

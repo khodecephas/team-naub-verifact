@@ -1,16 +1,19 @@
+import CustodyController from '@/actions/App/Http/Controllers/CustodyController';
+import ReportController from '@/actions/App/Http/Controllers/ReportController';
+import { Link } from '@inertiajs/react';
+
 export type CaseTab = 'overview' | 'evidence';
 
 interface CaseTabsProps {
     activeTab: CaseTab;
     evidenceCount: number;
+    caseNumber: string;
     onChange: (tab: CaseTab) => void;
 }
 
 const FUTURE_TABS = [
-    { label: 'Chain of Custody', icon: 'history_edu' },
     { label: 'Findings & Analysis', icon: 'policy' },
     { label: 'Activity Audit', icon: 'fact_check' },
-    { label: 'Generated Reports', icon: 'picture_as_pdf' },
 ] as const;
 
 function tabClassName(isActive: boolean): string {
@@ -23,7 +26,7 @@ function tabClassName(isActive: boolean): string {
     ].join(' ');
 }
 
-export function CaseTabs({ activeTab, evidenceCount, onChange }: CaseTabsProps) {
+export function CaseTabs({ activeTab, evidenceCount, caseNumber, onChange }: CaseTabsProps) {
     return (
         <nav
             aria-label="Case record sections"
@@ -42,6 +45,16 @@ export function CaseTabs({ activeTab, evidenceCount, onChange }: CaseTabsProps) 
                     </span>
                     Overview
                 </button>
+
+                <Link
+                    href={CustodyController.index({ query: { case: caseNumber } })}
+                    className={tabClassName(false)}
+                >
+                    <span aria-hidden="true" className="material-symbols-outlined text-[17px]">
+                        history_edu
+                    </span>
+                    Chain of Custody
+                </Link>
 
                 <button
                     type="button"
@@ -81,6 +94,16 @@ export function CaseTabs({ activeTab, evidenceCount, onChange }: CaseTabsProps) 
                         </span>
                     </button>
                 ))}
+
+                <Link
+                    href={ReportController.index({ query: { case: caseNumber } })}
+                    className={tabClassName(false)}
+                >
+                    <span aria-hidden="true" className="material-symbols-outlined text-[17px]">
+                        picture_as_pdf
+                    </span>
+                    Generated Reports
+                </Link>
             </div>
         </nav>
     );

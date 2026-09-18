@@ -6,7 +6,6 @@ use App\Enums\CustodyRequestStatus;
 use App\Enums\EvidenceDerivativeStatus;
 use App\Enums\EvidenceType;
 use App\Enums\IntegrityStatus;
-use App\Enums\UserRole;
 use App\Http\Requests\EvidenceCustodyTransferRequest;
 use App\Http\Requests\EvidenceIntakeCompletionRequest;
 use App\Http\Requests\EvidenceStoreRequest;
@@ -22,7 +21,9 @@ use App\Services\EvidenceCustodyService;
 use App\Services\EvidenceDerivativeService;
 use App\Services\EvidenceRegistrationService;
 use App\Services\EvidenceVerificationService;
+use App\Support\UploadLimit;
 use DomainException;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -45,45 +46,116 @@ class EvidenceController extends Controller
     {
         $this->authorize('viewAny', Evidence::class);
 
-        $search = $request->string('search')->toString() ?: null;
-
-        $canViewAllUnassigned = in_array(
-            $request->user()->role,
-            [UserRole::ADMINISTRATOR, UserRole::AUDITOR],
-            true,
-        );
-
-        $evidence = Evidence::query()
-            ->where(function ($query) use ($request, $canViewAllUnassigned) {
-                $query->whereHas('case', fn ($caseQuery) => $caseQuery->visibleTo($request->user()))
-                    ->orWhere(function ($unassignedQuery) use ($request, $canViewAllUnassigned) {
-                        $unassignedQuery->whereNull('case_id');
-
-                        if (! $canViewAllUnassigned) {
-                            $unassignedQuery->where('registered_by', $request->user()->id);
-                        }
-                    });
-            })
+        $evidence = $this->filteredEvidence($request)
             ->with([
                 'case:id,case_number,title',
                 'physicalSource:id,label',
                 'registeredBy:id,name',
                 'currentCustodian:id,name',
             ])
-            ->when($search, fn ($query) => $query->where(function ($query) use ($search) {
-                $query->where('title', 'like', "%{$search}%")
-                    ->orWhere('evidence_number', 'like', "%{$search}%")
-                    ->orWhereHas('case', fn ($q) => $q->where('case_number', 'like', "%{$search}%"));
-            }))
             ->latest('registered_at')
             ->paginate(20)
             ->withQueryString();
 
+        $visibleEvidence = Evidence::query()->visibleTo($request->user());
+        $caseOptions = CaseFile::query()
+            ->visibleTo($request->user())
+            ->orderBy('case_number')
+            ->get(['id', 'case_number', 'title']);
+        $custodianOptions = User::query()
+            ->whereIn('id', (clone $visibleEvidence)->whereNotNull('current_custodian_id')->pluck('current_custodian_id'))
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
         return Inertia::render('Evidence/Index', [
             'evidence' => EvidenceResource::collection($evidence),
-            'filters' => ['search' => $search],
+            'filters' => $request->only(['search', 'integrity', 'type', 'case', 'custodian', 'registered']),
+            'filterOptions' => [
+                'integrity' => IntegrityStatus::getValues(),
+                'types' => EvidenceType::getValues(),
+                'cases' => $caseOptions,
+                'custodians' => $custodianOptions,
+            ],
             'canQuickIngest' => Gate::allows('create', Evidence::class),
         ]);
+    }
+
+    /**
+     * Stream the currently filtered evidence register as CSV.
+     */
+    public function export(Request $request): StreamedResponse
+    {
+        $this->authorize('viewAny', Evidence::class);
+
+        $records = $this->filteredEvidence($request)
+            ->with(['case:id,case_number,title', 'currentCustodian:id,name', 'registeredBy:id,name'])
+            ->latest('registered_at')
+            ->cursor();
+
+        return response()->streamDownload(function () use ($records): void {
+            $output = fopen('php://output', 'wb');
+            fputcsv($output, [
+                'Evidence ID', 'Title', 'Filename', 'Classification', 'Case',
+                'Custodian', 'Integrity Status', 'SHA-256 Baseline', 'Registered At',
+            ]);
+
+            foreach ($records as $evidence) {
+                fputcsv($output, [
+                    $evidence->evidence_number,
+                    $this->csvValue($evidence->title),
+                    $this->csvValue($evidence->original_filename),
+                    $evidence->evidence_type,
+                    $evidence->case?->case_number,
+                    $this->csvValue($evidence->currentCustodian?->name ?? $evidence->registeredBy?->name ?? ''),
+                    $evidence->integrity_status,
+                    $evidence->sha256_baseline,
+                    $evidence->registered_at?->toIso8601String(),
+                ]);
+            }
+
+            fclose($output);
+        }, 'evidence-register-'.now()->format('Ymd-His').'.csv', [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Cache-Control' => 'private, no-store',
+        ]);
+    }
+
+    /**
+     * Re-hash selected protected masters and persist every result.
+     */
+    public function verifyBatch(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'evidence_numbers' => ['required', 'array', 'min:1', 'max:50'],
+            'evidence_numbers.*' => ['required', 'string', 'distinct'],
+        ]);
+        $records = Evidence::query()
+            ->visibleTo($request->user())
+            ->whereIn('evidence_number', $validated['evidence_numbers'])
+            ->get();
+
+        abort_unless($records->count() === count($validated['evidence_numbers']), 404);
+
+        $matches = 0;
+        $failures = 0;
+
+        foreach ($records as $evidence) {
+            $this->authorize('verify', $evidence);
+
+            try {
+                $verification = EvidenceVerificationService::verify($evidence, $request->user());
+                $verification->matches_baseline ? $matches++ : $failures++;
+            } catch (Throwable $exception) {
+                report($exception);
+                $evidence->update(['integrity_status' => IntegrityStatus::VERIFICATION_REQUIRED]);
+                $failures++;
+            }
+        }
+
+        return back()->with(
+            $failures > 0 ? 'error' : 'success',
+            "Batch verification completed: {$matches} matched, {$failures} require review.",
+        );
     }
 
     public function quickCreate(): Response
@@ -91,7 +163,7 @@ class EvidenceController extends Controller
         $this->authorize('create', Evidence::class);
 
         return Inertia::render('Evidence/QuickIngest', [
-            'maxUploadSizeKb' => (int) config('evidence.max_upload_size_kb'),
+            'maxUploadSizeKb' => UploadLimit::evidenceKilobytes(),
         ]);
     }
 
@@ -124,7 +196,7 @@ class EvidenceController extends Controller
             'case' => $caseFile->only(['id', 'case_number', 'title']),
             'physicalSources' => $caseFile->physicalSources()->get(['id', 'label']),
             'evidenceTypes' => EvidenceType::getValues(),
-            'maxUploadSizeKb' => (int) config('evidence.max_upload_size_kb'),
+            'maxUploadSizeKb' => UploadLimit::evidenceKilobytes(),
         ]);
     }
 
@@ -525,6 +597,46 @@ class EvidenceController extends Controller
             ->filter()
             ->unique('id')
             ->values();
+    }
+
+    /**
+     * Build the authorized evidence query shared by the register and export.
+     */
+    private function filteredEvidence(Request $request): Builder
+    {
+        $search = trim($request->string('search')->toString());
+        $integrity = $request->string('integrity')->toString();
+        $type = $request->string('type')->toString();
+        $case = $request->string('case')->toString();
+        $custodian = $request->integer('custodian');
+        $registered = $request->string('registered')->toString();
+        $evidenceNumbers = array_values(array_filter(explode(',', $request->string('evidence_numbers')->toString())));
+
+        return Evidence::query()
+            ->visibleTo($request->user())
+            ->when($search !== '', fn (Builder $query) => $query->where(function (Builder $query) use ($search) {
+                $query->where('title', 'like', "%{$search}%")
+                    ->orWhere('original_filename', 'like', "%{$search}%")
+                    ->orWhere('evidence_number', 'like', "%{$search}%")
+                    ->orWhereHas('case', fn (Builder $caseQuery) => $caseQuery->where('case_number', 'like', "%{$search}%"));
+            }))
+            ->when(in_array($integrity, IntegrityStatus::getValues(), true), fn (Builder $query) => $query->where('integrity_status', $integrity))
+            ->when(in_array($type, EvidenceType::getValues(), true), fn (Builder $query) => $query->where('evidence_type', $type))
+            ->when($case === 'unassigned', fn (Builder $query) => $query->whereNull('case_id'))
+            ->when($case !== '' && $case !== 'unassigned', fn (Builder $query) => $query->whereHas('case', fn (Builder $caseQuery) => $caseQuery->where('case_number', $case)))
+            ->when($custodian > 0, fn (Builder $query) => $query->where('current_custodian_id', $custodian))
+            ->when($registered === 'today', fn (Builder $query) => $query->whereDate('registered_at', today()))
+            ->when($registered === 'week', fn (Builder $query) => $query->where('registered_at', '>=', now()->subDays(7)))
+            ->when($registered === 'month', fn (Builder $query) => $query->where('registered_at', '>=', now()->subDays(30)))
+            ->when($evidenceNumbers !== [], fn (Builder $query) => $query->whereIn('evidence_number', $evidenceNumbers));
+    }
+
+    /**
+     * Prevent spreadsheet software from interpreting exported text as formulas.
+     */
+    private function csvValue(string $value): string
+    {
+        return preg_match('/^[=+\-@]/', $value) === 1 ? "'{$value}" : $value;
     }
 
     private function masterFileAvailable(Evidence $evidence): bool

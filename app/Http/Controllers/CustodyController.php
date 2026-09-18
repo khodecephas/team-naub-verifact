@@ -26,7 +26,9 @@ class CustodyController extends Controller
                         $unassigned->where('registered_by', $request->user()->id);
                     }
                 });
-        });
+        })->when($request->filled('case'), fn (Builder $query) => $query
+            ->whereHas('case', fn (Builder $caseQuery) => $caseQuery
+                ->where('case_number', $request->string('case')->toString())));
         $visibleIds = (clone $visibleEvidence)->pluck('id');
 
         $holdings = (clone $visibleEvidence)
@@ -90,6 +92,7 @@ class CustodyController extends Controller
                 'method' => $event->transfer_method,
                 'occurred_at' => $event->occurred_at->toIso8601String(),
             ]),
+            'caseFilter' => $request->string('case')->toString() ?: null,
         ]);
     }
 }

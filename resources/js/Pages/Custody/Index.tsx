@@ -1,4 +1,5 @@
 import CustodyRequestController from "@/actions/App/Http/Controllers/CustodyRequestController";
+import CustodyController from "@/actions/App/Http/Controllers/CustodyController";
 import EvidenceController from "@/actions/App/Http/Controllers/EvidenceController";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -65,10 +66,12 @@ export default function Index({
     holdings,
     requests,
     history,
+    caseFilter,
 }: {
     holdings: Holding[];
     requests: RequestItem[];
     history: HistoryItem[];
+    caseFilter: string | null;
 }) {
     const [tab, setTab] = useState<Tab>("current");
     const [reviewing, setReviewing] = useState<RequestItem | null>(null);
@@ -424,6 +427,20 @@ export default function Index({
                         </Button>
                     }
                 />
+
+                {caseFilter ? (
+                    <div className="flex items-center justify-between rounded-md border border-blue-200 bg-blue-50 px-4 py-2 text-xs text-blue-900">
+                        <span>
+                            Showing custody records for{" "}
+                            <strong className="font-mono">{caseFilter}</strong>
+                        </span>
+                        <Button size="sm" variant="ghost" asChild>
+                            <Link href={CustodyController.index()}>
+                                Clear case filter
+                            </Link>
+                        </Button>
+                    </div>
+                ) : null}
 
                 <section
                     aria-label="Custody summary"

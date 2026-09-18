@@ -5,23 +5,26 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { PaginatedEvidence } from "@/types/evidence";
-import { Head, Link } from "@inertiajs/react";
+import { Head, Link, router, usePage } from "@inertiajs/react";
 
 interface IndexProps {
     evidence: PaginatedEvidence;
     filters: {
-        search: string | null;
+        search?: string;
+        integrity?: string;
+        type?: string;
+        case?: string;
+        custodian?: string;
+        registered?: string;
+    };
+    filterOptions: {
+        integrity: string[];
+        types: string[];
+        cases: { id: number; case_number: string; title: string }[];
+        custodians: { id: number; name: string }[];
     };
     canQuickIngest: boolean;
 }
-
-const FILTERS = [
-    { label: "Integrity status", value: "All integrity states" },
-    { label: "Classification", value: "All evidence types" },
-    { label: "Case assignment", value: "All cases" },
-    { label: "Custodian", value: "All custodians" },
-    { label: "Date registered", value: "Any date" },
-] as const;
 
 function RegistryMetric({
     label,
@@ -74,8 +77,26 @@ function RegistryMetric({
 export default function Index({
     evidence,
     filters,
+    filterOptions,
     canQuickIngest,
 }: IndexProps) {
+    const { url } = usePage();
+    const currentQuery = url.includes("?") ? `?${url.split("?")[1]}` : "";
+    const setFilter = (key: string, value: string) => {
+        const params = Object.fromEntries(
+            new URLSearchParams(window.location.search),
+        );
+
+        if (value) params[key] = value;
+        else delete params[key];
+        delete params.page;
+
+        router.get(EvidenceController.index().url, params, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
     const pageCounts = evidence.data.reduce(
         (counts, item) => {
             if (item.integrity_status === "BASELINE_ESTABLISHED") {
@@ -115,18 +136,18 @@ export default function Index({
                     description="Authorised register of digital exhibits, source media, custodians, and integrity state."
                     actions={
                         <>
-                            <Button
-                                variant="outline"
-                                disabled
-                                title="Registry export will be available in a later release"
-                            >
-                                <span
-                                    aria-hidden="true"
-                                    className="material-symbols-outlined text-[17px]"
+                            <Button variant="outline" asChild>
+                                <a
+                                    href={`${EvidenceController.export().url}${currentQuery}`}
                                 >
-                                    download
-                                </span>
-                                Export registry
+                                    <span
+                                        aria-hidden="true"
+                                        className="material-symbols-outlined text-[17px]"
+                                    >
+                                        download
+                                    </span>
+                                    Export registry
+                                </a>
                             </Button>
                             {canQuickIngest ? (
                                 <Button asChild>
@@ -199,27 +220,46 @@ export default function Index({
                     hasSearch={Boolean(filters.search)}
                     filterPanel={
                         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-                            {FILTERS.map((filter) => (
-                                <label
-                                    key={filter.label}
-                                    className="flex flex-col gap-1.5"
-                                >
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                                        {filter.label}
-                                    </span>
-                                    <select
-                                        disabled
-                                        title={`${filter.label} filtering will be available in a later release`}
-                                        className="h-9 cursor-not-allowed rounded-md border border-slate-200 bg-slate-50 px-3 text-xs text-slate-400"
-                                    >
-                                        <option>{filter.value}</option>
-                                    </select>
-                                </label>
-                            ))}
+                            <RegistryFilter label="Integrity status" value={filters.integrity} onChange={(value) => setFilter("integrity", value)} options={[["", "All integrity states"], ...filterOptions.integrity.map((value) => [value, value.replaceAll("_", " ")])]} />
+                            <RegistryFilter label="Classification" value={filters.type} onChange={(value) => setFilter("type", value)} options={[["", "All evidence types"], ...filterOptions.types.map((value) => [value, value.replaceAll("_", " ")])]} />
+                            <RegistryFilter label="Case assignment" value={filters.case} onChange={(value) => setFilter("case", value)} options={[["", "All cases"], ["unassigned", "Unassigned"], ...filterOptions.cases.map((item) => [item.case_number, `${item.case_number} — ${item.title}`])]} />
+                            <RegistryFilter label="Custodian" value={filters.custodian} onChange={(value) => setFilter("custodian", value)} options={[["", "All custodians"], ...filterOptions.custodians.map((item) => [String(item.id), item.name])]} />
+                            <RegistryFilter label="Date registered" value={filters.registered} onChange={(value) => setFilter("registered", value)} options={[["", "Any date"], ["today", "Today"], ["week", "Last 7 days"], ["month", "Last 30 days"]]} />
                         </div>
                     }
                 />
             </div>
         </AuthenticatedLayout>
+    );
+}
+
+function RegistryFilter({
+    label,
+    value,
+    options,
+    onChange,
+}: {
+    label: string;
+    value?: string;
+    options: string[][];
+    onChange: (value: string) => void;
+}) {
+    return (
+        <label className="flex flex-col gap-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                {label}
+            </span>
+            <select
+                value={value ?? ""}
+                onChange={(event) => onChange(event.target.value)}
+                className="h-9 rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-700"
+            >
+                {options.map(([optionValue, optionLabel]) => (
+                    <option key={optionValue} value={optionValue}>
+                        {optionLabel}
+                    </option>
+                ))}
+            </select>
+        </label>
     );
 }

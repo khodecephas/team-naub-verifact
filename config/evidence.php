@@ -30,6 +30,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Comparison Upload Transport
+    |--------------------------------------------------------------------------
+    |
+    | Comparison files are sent in small ordered parts. This lets the verifier
+    | accept the configured evidence limit even when PHP limits each request.
+    | Temporary parts are private and are deleted as soon as hashing finishes.
+    |
+    */
+
+    'comparison_disk' => env('EVIDENCE_COMPARISON_DISK', 'local'),
+
+    'comparison_chunk_size_kb' => 1024,
+
+    /*
+    |--------------------------------------------------------------------------
     | Working-copy availability
     |--------------------------------------------------------------------------
     |

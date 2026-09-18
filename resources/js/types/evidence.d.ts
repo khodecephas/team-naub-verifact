@@ -139,6 +139,7 @@ export interface VerificationEvidenceOption {
     sha256_baseline: string;
     integrity_status: string;
     registered_at: string;
+    registered_by: EvidenceRegisteredBySummary | null;
     case: EvidenceCaseSummary | null;
 }
 

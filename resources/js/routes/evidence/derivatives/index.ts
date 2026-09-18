@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, applyUrlDefaults } from './../../../wayfinder'
 /**
 * @see \App\Http\Controllers\EvidenceController::store
-* @see app/Http/Controllers/EvidenceController.php:352
+* @see app/Http/Controllers/EvidenceController.php:424
 * @route '/evidence/{evidence}/derivatives'
 */
 export const store = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -16,7 +16,7 @@ store.definition = {
 
 /**
 * @see \App\Http\Controllers\EvidenceController::store
-* @see app/Http/Controllers/EvidenceController.php:352
+* @see app/Http/Controllers/EvidenceController.php:424
 * @route '/evidence/{evidence}/derivatives'
 */
 store.url = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions) => {
@@ -49,7 +49,7 @@ store.url = (args: { evidence: string | { evidence_number: string } } | [evidenc
 
 /**
 * @see \App\Http\Controllers\EvidenceController::store
-* @see app/Http/Controllers/EvidenceController.php:352
+* @see app/Http/Controllers/EvidenceController.php:424
 * @route '/evidence/{evidence}/derivatives'
 */
 store.post = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -59,7 +59,7 @@ store.post = (args: { evidence: string | { evidence_number: string } } | [eviden
 
 /**
 * @see \App\Http\Controllers\EvidenceController::download
-* @see app/Http/Controllers/EvidenceController.php:390
+* @see app/Http/Controllers/EvidenceController.php:462
 * @route '/evidence/{evidence}/derivatives/{derivative}/download'
 */
 export const download = (args: { evidence: string | { evidence_number: string }, derivative: string | { derivative_number: string } } | [evidence: string | { evidence_number: string }, derivative: string | { derivative_number: string } ], options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -74,7 +74,7 @@ download.definition = {
 
 /**
 * @see \App\Http\Controllers\EvidenceController::download
-* @see app/Http/Controllers/EvidenceController.php:390
+* @see app/Http/Controllers/EvidenceController.php:462
 * @route '/evidence/{evidence}/derivatives/{derivative}/download'
 */
 download.url = (args: { evidence: string | { evidence_number: string }, derivative: string | { derivative_number: string } } | [evidence: string | { evidence_number: string }, derivative: string | { derivative_number: string } ], options?: RouteQueryOptions) => {
@@ -104,7 +104,7 @@ download.url = (args: { evidence: string | { evidence_number: string }, derivati
 
 /**
 * @see \App\Http\Controllers\EvidenceController::download
-* @see app/Http/Controllers/EvidenceController.php:390
+* @see app/Http/Controllers/EvidenceController.php:462
 * @route '/evidence/{evidence}/derivatives/{derivative}/download'
 */
 download.get = (args: { evidence: string | { evidence_number: string }, derivative: string | { derivative_number: string } } | [evidence: string | { evidence_number: string }, derivative: string | { derivative_number: string } ], options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -114,7 +114,7 @@ download.get = (args: { evidence: string | { evidence_number: string }, derivati
 
 /**
 * @see \App\Http\Controllers\EvidenceController::download
-* @see app/Http/Controllers/EvidenceController.php:390
+* @see app/Http/Controllers/EvidenceController.php:462
 * @route '/evidence/{evidence}/derivatives/{derivative}/download'
 */
 download.head = (args: { evidence: string | { evidence_number: string }, derivative: string | { derivative_number: string } } | [evidence: string | { evidence_number: string }, derivative: string | { derivative_number: string } ], options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -124,7 +124,7 @@ download.head = (args: { evidence: string | { evidence_number: string }, derivat
 
 /**
 * @see \App\Http\Controllers\EvidenceController::revoke
-* @see app/Http/Controllers/EvidenceController.php:444
+* @see app/Http/Controllers/EvidenceController.php:516
 * @route '/evidence/{evidence}/derivatives/{derivative}/revoke'
 */
 export const revoke = (args: { evidence: string | { evidence_number: string }, derivative: string | { derivative_number: string } } | [evidence: string | { evidence_number: string }, derivative: string | { derivative_number: string } ], options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -139,7 +139,7 @@ revoke.definition = {
 
 /**
 * @see \App\Http\Controllers\EvidenceController::revoke
-* @see app/Http/Controllers/EvidenceController.php:444
+* @see app/Http/Controllers/EvidenceController.php:516
 * @route '/evidence/{evidence}/derivatives/{derivative}/revoke'
 */
 revoke.url = (args: { evidence: string | { evidence_number: string }, derivative: string | { derivative_number: string } } | [evidence: string | { evidence_number: string }, derivative: string | { derivative_number: string } ], options?: RouteQueryOptions) => {
@@ -169,7 +169,7 @@ revoke.url = (args: { evidence: string | { evidence_number: string }, derivative
 
 /**
 * @see \App\Http\Controllers\EvidenceController::revoke
-* @see app/Http/Controllers/EvidenceController.php:444
+* @see app/Http/Controllers/EvidenceController.php:516
 * @route '/evidence/{evidence}/derivatives/{derivative}/revoke'
 */
 revoke.post = (args: { evidence: string | { evidence_number: string }, derivative: string | { derivative_number: string } } | [evidence: string | { evidence_number: string }, derivative: string | { derivative_number: string } ], options?: RouteQueryOptions): RouteDefinition<'post'> => ({

@@ -2,6 +2,7 @@ import EvidenceController from '@/actions/App/Http/Controllers/EvidenceControlle
 import { Button } from '@/components/ui/button';
 import { Panel, PanelHeader } from '@/components/ui/panel';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { useNotificationDialog } from '@/components/notifications/NotificationDialogProvider';
 import {
     CaseDetail,
     CaseIntegritySummary,
@@ -67,6 +68,7 @@ export function CaseOverview({
     physicalSourceCount,
     canRegisterEvidence,
 }: CaseOverviewProps) {
+    const { notify } = useNotificationDialog();
     const completedStages = [Boolean(caseFile.opened_at), evidenceCount > 0, false, false, false];
     const attentionCount = integrity.verification_required + integrity.integrity_failure;
 
@@ -174,8 +176,11 @@ export function CaseOverview({
                             <Button
                                 size="sm"
                                 variant="outline"
-                                disabled
-                                title="Case delegation will be available in a later release"
+                                onClick={() => notify({
+                                    title: 'Personnel management',
+                                    message: 'The current case roster is shown below. Additional assignments must be added by an administrator while role management is being completed.',
+                                    tone: 'info',
+                                })}
                             >
                                 Manage
                             </Button>

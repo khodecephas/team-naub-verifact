@@ -7,6 +7,7 @@ import { CaseTab, CaseTabs } from "@/components/cases/CaseTabs";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { useNotificationDialog } from "@/components/notifications/NotificationDialogProvider";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import {
     CaseDetail,
@@ -82,13 +83,17 @@ export default function Show({
     canRegisterEvidence,
 }: ShowProps) {
     const [activeTab, setActiveTab] = useState<CaseTab>("overview");
+    const { confirm } = useNotificationDialog();
 
-    const archiveCase = () => {
-        if (
-            !window.confirm(
-                `Archive ${caseFile.case_number}? This closes the case.`,
-            )
-        ) {
+    const archiveCase = async () => {
+        const confirmed = await confirm({
+            title: "Close this case?",
+            message: `Archive ${caseFile.case_number}? This closes the case and preserves its existing records.`,
+            confirmLabel: "Close case",
+            tone: "warning",
+        });
+
+        if (!confirmed) {
             return;
         }
 
@@ -238,6 +243,7 @@ export default function Show({
                 <CaseTabs
                     activeTab={activeTab}
                     evidenceCount={evidence.length}
+                    caseNumber={caseFile.case_number}
                     onChange={setActiveTab}
                 />
 
@@ -255,6 +261,7 @@ export default function Show({
                     <CaseEvidenceRegister
                         evidence={evidence}
                         physicalSources={physicalSources}
+                        caseNumber={caseFile.case_number}
                     />
                 )}
             </div>

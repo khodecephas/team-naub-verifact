@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Console\Commands\ServeCommand;
 use App\Models\CaseFile;
 use App\Models\CustodyRequest;
 use App\Models\Evidence;
@@ -34,6 +35,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->commands([ServeCommand::class]);
+
         Vite::prefetch(concurrency: 3);
 
         // Inertia treats a JsonResource passed as a page prop as a Responsable

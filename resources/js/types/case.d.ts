@@ -6,6 +6,11 @@ export interface CaseSummary {
     title: string;
     status: CaseStatus;
     case_manager: string | null;
+    priority: string | null;
+    matter_category: string | null;
+    docket_reference: string | null;
+    judicial_authority: string | null;
+    discovery_deadline: string | null;
     evidence_count: number;
     updated_at: string;
 }

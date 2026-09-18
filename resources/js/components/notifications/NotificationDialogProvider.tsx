@@ -28,8 +28,17 @@ export interface NotificationDialogOptions {
     actionLabel?: string;
 }
 
+export interface ConfirmationDialogOptions {
+    title: string;
+    message: string;
+    confirmLabel?: string;
+    cancelLabel?: string;
+    tone?: Extract<NotificationTone, 'warning' | 'error'>;
+}
+
 interface NotificationDialogContextValue {
     notify: (options: NotificationDialogOptions) => void;
+    confirm: (options: ConfirmationDialogOptions) => Promise<boolean>;
     dismiss: () => void;
 }
 
@@ -45,6 +54,9 @@ const toneStyles: Record<NotificationTone, { icon: string; iconClassName: string
 export function NotificationDialogProvider({ children }: PropsWithChildren) {
     const [notification, setNotification] = useState<NotificationDialogOptions | null>(null);
     const [open, setOpen] = useState(false);
+    const [confirmation, setConfirmation] = useState<ConfirmationDialogOptions | null>(null);
+    const [confirmationOpen, setConfirmationOpen] = useState(false);
+    const [resolveConfirmation, setResolveConfirmation] = useState<((confirmed: boolean) => void) | null>(null);
 
     const notify = useCallback((options: NotificationDialogOptions) => {
         setNotification(options);
@@ -52,7 +64,20 @@ export function NotificationDialogProvider({ children }: PropsWithChildren) {
     }, []);
 
     const dismiss = useCallback(() => setOpen(false), []);
-    const contextValue = useMemo(() => ({ notify, dismiss }), [dismiss, notify]);
+    const confirm = useCallback((options: ConfirmationDialogOptions) => {
+        setConfirmation(options);
+        setConfirmationOpen(true);
+
+        return new Promise<boolean>((resolve) => {
+            setResolveConfirmation(() => resolve);
+        });
+    }, []);
+    const finishConfirmation = useCallback((confirmed: boolean) => {
+        resolveConfirmation?.(confirmed);
+        setResolveConfirmation(null);
+        setConfirmationOpen(false);
+    }, [resolveConfirmation]);
+    const contextValue = useMemo(() => ({ notify, confirm, dismiss }), [confirm, dismiss, notify]);
     const tone = notification?.tone ?? 'info';
     const style = toneStyles[tone];
 
@@ -76,6 +101,38 @@ export function NotificationDialogProvider({ children }: PropsWithChildren) {
                             <DialogClose asChild>
                                 <Button type="button">{notification.actionLabel ?? 'OK'}</Button>
                             </DialogClose>
+                        </DialogFooter>
+                    </DialogContent>
+                ) : null}
+            </Dialog>
+            <Dialog
+                open={confirmationOpen}
+                onOpenChange={(nextOpen) => {
+                    if (!nextOpen) finishConfirmation(false);
+                }}
+            >
+                {confirmation ? (
+                    <DialogContent>
+                        <DialogHeader className="text-center">
+                            <span className={`mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full ${toneStyles[confirmation.tone ?? 'warning'].iconClassName}`}>
+                                <span aria-hidden="true" className="material-symbols-outlined text-[30px]">
+                                    {toneStyles[confirmation.tone ?? 'warning'].icon}
+                                </span>
+                            </span>
+                            <DialogTitle className="text-lg">{confirmation.title}</DialogTitle>
+                            <DialogDescription>{confirmation.message}</DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => finishConfirmation(false)}>
+                                {confirmation.cancelLabel ?? 'Cancel'}
+                            </Button>
+                            <Button
+                                type="button"
+                                variant={confirmation.tone === 'error' ? 'destructive' : 'default'}
+                                onClick={() => finishConfirmation(true)}
+                            >
+                                {confirmation.confirmLabel ?? 'Continue'}
+                            </Button>
                         </DialogFooter>
                     </DialogContent>
                 ) : null}

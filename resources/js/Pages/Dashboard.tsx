@@ -1,5 +1,7 @@
 import CaseController from "@/actions/App/Http/Controllers/CaseController";
+import CustodyController from "@/actions/App/Http/Controllers/CustodyController";
 import EvidenceController from "@/actions/App/Http/Controllers/EvidenceController";
+import EvidenceVerificationComparisonController from "@/actions/App/Http/Controllers/EvidenceVerificationComparisonController";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -15,6 +17,7 @@ interface DashboardStats {
     total_cases: number;
     evidence_total: number;
     physical_source_total: number;
+    pending_custody_actions: number;
     integrity: {
         baseline_established: number;
         verified: number;
@@ -161,25 +164,23 @@ export default function Dashboard({
                     description="Review active investigations, registered evidence, and items requiring attention."
                     actions={
                         <>
-                            <Button
-                                variant="outline"
-                                disabled
-                                title="Verification is not implemented yet"
-                            >
-                                <span className="material-symbols-outlined text-[17px]">
-                                    verified_user
-                                </span>
-                                Verify hash
+                            <Button variant="outline" asChild>
+                                <Link
+                                    href={EvidenceVerificationComparisonController.index()}
+                                >
+                                    <span className="material-symbols-outlined text-[17px]">
+                                        verified_user
+                                    </span>
+                                    Verify hash
+                                </Link>
                             </Button>
-                            <Button
-                                variant="outline"
-                                disabled
-                                title="Open a case first to register evidence"
-                            >
-                                <span className="material-symbols-outlined text-[17px]">
-                                    add_box
-                                </span>
-                                Register evidence
+                            <Button variant="outline" asChild>
+                                <Link href={EvidenceController.quickCreate()}>
+                                    <span className="material-symbols-outlined text-[17px]">
+                                        add_box
+                                    </span>
+                                    Register evidence
+                                </Link>
                             </Button>
                             <Button asChild>
                                 <Link href={CaseController.create()}>
@@ -352,7 +353,7 @@ export default function Dashboard({
                         <Panel>
                             <PanelHeader
                                 title="Pending custody actions"
-                                description="Transfers and acknowledgements awaiting action"
+                                description={`${stats.pending_custody_actions} request${stats.pending_custody_actions === 1 ? "" : "s"} awaiting your review`}
                             />
                             <div className="p-5">
                                 <div className="rounded border border-dashed border-slate-300 bg-slate-50 p-5 text-center">
@@ -363,20 +364,21 @@ export default function Dashboard({
                                         swap_horiz
                                     </span>
                                     <p className="mt-2 text-sm font-medium text-slate-700">
-                                        Custody workflow pending implementation
+                                        Review custody requests and transfers
                                     </p>
                                     <p className="mt-1 text-xs leading-5 text-slate-500">
-                                        Transfer requests and acknowledgements
-                                        will appear here.
+                                        Open the custody workspace to review
+                                        holdings, pending requests, and history.
                                     </p>
                                     <Button
                                         className="mt-4"
                                         size="sm"
                                         variant="outline"
-                                        disabled
-                                        title="Custody workflow is not available yet"
+                                        asChild
                                     >
-                                        Open custody queue
+                                        <Link href={CustodyController.index()}>
+                                            Open custody queue
+                                        </Link>
                                     </Button>
                                 </div>
                             </div>
@@ -387,11 +389,9 @@ export default function Dashboard({
                                 description="Register evidence from the relevant case record"
                             />
                             <div className="p-5">
-                                <button
-                                    type="button"
-                                    disabled
-                                    title="Dashboard file ingestion is not available yet"
-                                    className="flex w-full cursor-not-allowed flex-col items-center rounded border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-slate-400"
+                                <Link
+                                    href={EvidenceController.quickCreate()}
+                                    className="flex w-full flex-col items-center rounded border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-slate-500 transition-colors hover:border-blue-400 hover:bg-blue-50"
                                 >
                                     <span
                                         aria-hidden="true"
@@ -406,7 +406,7 @@ export default function Dashboard({
                                         Documents, photos, audio, video, and
                                         forensic images
                                     </span>
-                                </button>
+                                </Link>
                                 <Button
                                     className="mt-4 w-full"
                                     variant="outline"

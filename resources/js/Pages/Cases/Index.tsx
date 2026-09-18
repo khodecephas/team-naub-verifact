@@ -1,4 +1,5 @@
 import CaseController from "@/actions/App/Http/Controllers/CaseController";
+import CustodyController from "@/actions/App/Http/Controllers/CustodyController";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,13 +7,24 @@ import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import type { CaseSummary, PaginatedData } from "@/types/case";
-import { Head, Link, router } from "@inertiajs/react";
+import { Head, Link, router, usePage } from "@inertiajs/react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useState } from "react";
 
 interface IndexProps {
     cases: PaginatedData<CaseSummary>;
-    filters: { status: string | null; search: string | null };
+    filters: {
+        status?: string;
+        search?: string;
+        priority?: string;
+        category?: string;
+        lead?: string;
+        jurisdiction?: string;
+    };
+    filterOptions: {
+        leads: { id: number; name: string }[];
+        jurisdictions: string[];
+    };
     statusCounts: {
         OPEN: number;
         IN_PROGRESS: number;
@@ -36,29 +48,20 @@ const STATUS_TABS: { label: string; value: string | null }[] = [
     { label: "Archived", value: "ARCHIVED" },
 ];
 
-const FILTER_SELECTS = [
-    {
-        label: "Priority",
-        options: [
-            "All Priorities",
-            "Critical Fast-Track",
-            "High Priority",
-            "Medium Priority",
-            "Low Priority",
-        ],
-    },
-    {
-        label: "Matter Category",
-        options: [
-            "All Categories",
-            "Intellectual Property & Data Theft",
-            "Financial Fraud & AML",
-            "Cyber Incident Response",
-            "Insider Threat / Intrusion",
-        ],
-    },
-    { label: "Lead Custodian", options: ["All Investigators"] },
-    { label: "Jurisdiction / Venue", options: ["All Courts / Venues"] },
+const PRIORITIES = [
+    "High Priority — Active Discovery Defense",
+    "Urgent — Immediate Preservation Order",
+    "Standard — Routine Investigative Intake",
+    "Low — Archival Review & Analysis",
+];
+
+const MATTER_CATEGORIES = [
+    "Intellectual Property & Data Theft",
+    "Financial Fraud & AML",
+    "Insider Threat / Intrusion",
+    "Cyber Incident Response",
+    "Subpoena Compliance",
+    "Other Judicial Order",
 ];
 
 function initials(name: string): string {
@@ -118,8 +121,12 @@ export default function Index({
     statusCounts,
     stats,
     canCreate,
+    filterOptions,
 }: IndexProps) {
+    const { url } = usePage();
+    const currentQuery = url.includes("?") ? `?${url.split("?")[1]}` : "";
     const [selected, setSelected] = useState<number[]>([]);
+    const [view, setView] = useState<"table" | "grid" | "timeline">("table");
 
     const toggleSelected = (id: number) => {
         setSelected((prev) =>
@@ -139,6 +146,20 @@ export default function Index({
         }
         delete params.page;
 
+        router.get(CaseController.index().url, params, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
+    const setFilter = (key: string, value: string) => {
+        const params = Object.fromEntries(
+            new URLSearchParams(window.location.search),
+        );
+        if (value) params[key] = value;
+        else delete params[key];
+        delete params.page;
         router.get(CaseController.index().url, params, {
             preserveState: true,
             preserveScroll: true,
@@ -199,11 +220,8 @@ export default function Index({
                         >
                             {row.original.case_number}
                         </Link>
-                        <span
-                            className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400"
-                            title="No structured priority field yet"
-                        >
-                            Not classified
+                        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                            {row.original.priority ?? "Not classified"}
                         </span>
                     </div>
                     <div
@@ -244,12 +262,25 @@ export default function Index({
         {
             id: "docket",
             header: "Docket / Jurisdiction",
-            cell: () => <span className="text-xs text-slate-400">—</span>,
+            cell: ({ row }) => (
+                <div className="max-w-[190px] text-xs">
+                    <p className="truncate font-mono text-slate-700">
+                        {row.original.docket_reference ?? "—"}
+                    </p>
+                    <p className="mt-1 truncate text-slate-500">
+                        {row.original.judicial_authority ?? "Not specified"}
+                    </p>
+                </div>
+            ),
         },
         {
             id: "deadline",
             header: "Discovery Deadline",
-            cell: () => <span className="text-xs text-slate-400">—</span>,
+            cell: ({ row }) => (
+                <span className="whitespace-nowrap text-xs text-slate-600">
+                    {row.original.discovery_deadline ?? "Not specified"}
+                </span>
+            ),
         },
         {
             accessorKey: "status",
@@ -270,26 +301,16 @@ export default function Index({
                         </span>
                         Vault
                     </Link>
-                    <button
-                        type="button"
-                        disabled
-                        title="No custody system yet"
-                        className="flex h-8 w-8 cursor-not-allowed items-center justify-center rounded text-slate-300"
+                    <Link
+                        href={CustodyController.index({
+                            query: { case: row.original.case_number },
+                        })}
+                        title="Open custody records"
+                        aria-label={`Open custody records for ${row.original.case_number}`}
+                        className="flex h-8 w-8 items-center justify-center rounded text-slate-500 hover:bg-slate-100 hover:text-secondary"
                     >
-                        <span className="material-symbols-outlined text-[16px]">
-                            link
-                        </span>
-                    </button>
-                    <button
-                        type="button"
-                        disabled
-                        title="Not available yet"
-                        className="flex h-8 w-8 cursor-not-allowed items-center justify-center rounded text-slate-300"
-                    >
-                        <span className="material-symbols-outlined text-[18px]">
-                            more_vert
-                        </span>
-                    </button>
+                        <span className="material-symbols-outlined text-[16px]">link</span>
+                    </Link>
                 </div>
             ),
         },
@@ -313,15 +334,13 @@ export default function Index({
                         description="Manage investigations, assigned personnel, evidence records, and case status."
                         actions={
                             <>
-                                <Button
-                                    variant="outline"
-                                    disabled
-                                    title="Export isn't available yet"
-                                >
-                                    <span className="material-symbols-outlined text-[18px]">
-                                        file_download
-                                    </span>
-                                    Export index
+                                <Button variant="outline" asChild>
+                                    <a href={`${CaseController.export().url}${currentQuery}`}>
+                                        <span className="material-symbols-outlined text-[18px]">
+                                            file_download
+                                        </span>
+                                        Export index
+                                    </a>
                                 </Button>
                                 {canCreate ? (
                                     <Button asChild>
@@ -469,31 +488,48 @@ export default function Index({
                         paginate={{ ...cases.meta, links: cases.links }}
                         searchText="Search by Case ID, Title, Docket #, Lead Custodian, or Matter Type…"
                         emptyMessage="No cases match these filters."
+                        displayMode={view}
+                        getRowId={(caseFile) => caseFile.case_number}
+                        renderGridItem={(caseFile) => (
+                            <CaseGridCard caseFile={caseFile} />
+                        )}
+                        renderTimelineItem={(caseFile) => (
+                            <CaseTimelineRow caseFile={caseFile} />
+                        )}
+                        bulkActions={
+                            selected.length > 0 ? (
+                                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-blue-50 px-4 py-2.5">
+                                    <span className="text-xs font-semibold text-blue-900">
+                                        {selected.length} case{selected.length === 1 ? "" : "s"} selected
+                                    </span>
+                                    <div className="flex gap-2">
+                                        <Button size="sm" variant="outline" asChild>
+                                            <Link href={CaseController.show(cases.data.find((item) => item.id === selected[0])!.case_number)}>
+                                                Open selected
+                                            </Link>
+                                        </Button>
+                                        <Button size="sm" variant="outline" asChild>
+                                            <a href={`${CaseController.export().url}?case_numbers=${encodeURIComponent(cases.data.filter((item) => selected.includes(item.id)).map((item) => item.case_number).join(","))}`}>
+                                                Export selected
+                                            </a>
+                                        </Button>
+                                    </div>
+                                </div>
+                            ) : null
+                        }
                         filterTrigger={
                             <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-1">
-                                <button
-                                    type="button"
-                                    className="flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1.5 text-xs font-medium text-slate-900 shadow-sm"
-                                >
-                                    <span className="material-symbols-outlined text-[16px]">
-                                        table_rows
-                                    </span>
-                                    List
-                                </button>
-                                {["Grid", "Timeline"].map((label) => (
+                                {(["table", "grid", "timeline"] as const).map((mode) => (
                                     <button
-                                        key={label}
+                                        key={mode}
                                         type="button"
-                                        disabled
-                                        title="Not available yet"
-                                        className="flex cursor-not-allowed items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-slate-300"
+                                        onClick={() => setView(mode)}
+                                        className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium ${view === mode ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-900"}`}
                                     >
                                         <span className="material-symbols-outlined text-[16px]">
-                                            {label === "Grid"
-                                                ? "grid_view"
-                                                : "timeline"}
+                                            {mode === "table" ? "table_rows" : mode === "grid" ? "grid_view" : "timeline"}
                                         </span>
-                                        {label}
+                                        {mode === "table" ? "List" : mode[0].toUpperCase() + mode.slice(1)}
                                     </button>
                                 ))}
                             </div>
@@ -536,29 +572,10 @@ export default function Index({
                                     </button>
                                 </div>
                                 <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                                    {FILTER_SELECTS.map((filter) => (
-                                        <label
-                                            key={filter.label}
-                                            className="flex flex-col gap-1"
-                                        >
-                                            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                                                {filter.label}
-                                            </span>
-                                            <select
-                                                disabled
-                                                title="Not a structured field yet"
-                                                className="h-9 w-full cursor-not-allowed rounded-lg border border-border bg-slate-50 px-3 text-xs text-slate-400 shadow-sm focus:outline-none"
-                                            >
-                                                {filter.options.map(
-                                                    (option) => (
-                                                        <option key={option}>
-                                                            {option}
-                                                        </option>
-                                                    ),
-                                                )}
-                                            </select>
-                                        </label>
-                                    ))}
+                                    <CaseFilter label="Priority" value={filters.priority} onChange={(value) => setFilter("priority", value)} options={[["", "All priorities"], ...PRIORITIES.map((value) => [value, value])]} />
+                                    <CaseFilter label="Matter category" value={filters.category} onChange={(value) => setFilter("category", value)} options={[["", "All categories"], ...MATTER_CATEGORIES.map((value) => [value, value])]} />
+                                    <CaseFilter label="Lead custodian" value={filters.lead} onChange={(value) => setFilter("lead", value)} options={[["", "All investigators"], ...filterOptions.leads.map((item) => [String(item.id), item.name])]} />
+                                    <CaseFilter label="Jurisdiction / venue" value={filters.jurisdiction} onChange={(value) => setFilter("jurisdiction", value)} options={[["", "All courts / venues"], ...filterOptions.jurisdictions.map((value) => [value, value])]} />
                                 </div>
                             </div>
                         }
@@ -566,5 +583,46 @@ export default function Index({
                 </div>
             </div>
         </AuthenticatedLayout>
+    );
+}
+
+function CaseFilter({ label, value, options, onChange }: { label: string; value?: string; options: string[][]; onChange: (value: string) => void }) {
+    return (
+        <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{label}</span>
+            <select value={value ?? ""} onChange={(event) => onChange(event.target.value)} className="h-9 w-full rounded-lg border border-border bg-white px-3 text-xs text-slate-700 shadow-sm focus:outline-none">
+                {options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}
+            </select>
+        </label>
+    );
+}
+
+function CaseGridCard({ caseFile }: { caseFile: CaseSummary }) {
+    return (
+        <Link href={CaseController.show(caseFile.case_number)} className="block rounded-md border border-slate-200 p-4 transition-colors hover:border-blue-300 hover:bg-blue-50/40">
+            <div className="flex items-start justify-between gap-3">
+                <span className="font-mono text-xs font-bold text-secondary">{caseFile.case_number}</span>
+                <StatusBadge status={caseFile.status} />
+            </div>
+            <h3 className="mt-3 line-clamp-2 text-sm font-semibold text-slate-900">{caseFile.title}</h3>
+            <dl className="mt-4 grid grid-cols-2 gap-3 text-xs text-slate-500">
+                <div><dt>Manager</dt><dd className="mt-1 truncate font-medium text-slate-700">{caseFile.case_manager ?? "Unassigned"}</dd></div>
+                <div><dt>Evidence</dt><dd className="mt-1 font-medium text-slate-700">{caseFile.evidence_count} items</dd></div>
+            </dl>
+        </Link>
+    );
+}
+
+function CaseTimelineRow({ caseFile }: { caseFile: CaseSummary }) {
+    return (
+        <Link href={CaseController.show(caseFile.case_number)} className="flex gap-4 py-4 hover:bg-slate-50">
+            <span className="mt-1 h-3 w-3 shrink-0 rounded-full bg-blue-600 ring-4 ring-blue-50" />
+            <span className="min-w-0 flex-1">
+                <span className="font-mono text-xs font-bold text-secondary">{caseFile.case_number}</span>
+                <span className="mt-1 block truncate text-sm font-semibold text-slate-900">{caseFile.title}</span>
+                <span className="mt-1 block text-xs text-slate-500">Updated {new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(caseFile.updated_at))}</span>
+            </span>
+            <StatusBadge status={caseFile.status} />
+        </Link>
     );
 }

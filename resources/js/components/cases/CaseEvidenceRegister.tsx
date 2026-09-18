@@ -1,4 +1,6 @@
 import EvidenceController from "@/actions/App/Http/Controllers/EvidenceController";
+import CustodyController from "@/actions/App/Http/Controllers/CustodyController";
+import EvidenceVerificationComparisonController from "@/actions/App/Http/Controllers/EvidenceVerificationComparisonController";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { Panel, PanelHeader } from "@/components/ui/panel";
@@ -12,6 +14,7 @@ import { useState } from "react";
 interface CaseEvidenceRegisterProps {
     evidence: Evidence[];
     physicalSources: PhysicalSourceSummary[];
+    caseNumber: string;
 }
 
 function formatDate(value: string): string {
@@ -71,6 +74,7 @@ function HashCell({ hash }: { hash: string }) {
 export function CaseEvidenceRegister({
     evidence,
     physicalSources,
+    caseNumber,
 }: CaseEvidenceRegisterProps) {
     const columns: ColumnDef<Evidence, unknown>[] = [
         {
@@ -154,33 +158,29 @@ export function CaseEvidenceRegister({
                             Inspect
                         </Link>
                     </Button>
-                    <Button
-                        size="icon"
-                        variant="ghost"
-                        disabled
-                        title="Custody history will be available in a later release"
-                        aria-label={`View custody history for ${row.original.evidence_number}`}
-                    >
-                        <span
-                            aria-hidden="true"
-                            className="material-symbols-outlined text-[17px]"
+                    <Button size="icon" variant="ghost" asChild>
+                        <Link
+                            href={CustodyController.index({ query: { case: caseNumber } })}
+                            title={`View custody history for ${row.original.evidence_number}`}
+                            aria-label={`View custody history for ${row.original.evidence_number}`}
                         >
-                            history
-                        </span>
+                            <span aria-hidden="true" className="material-symbols-outlined text-[17px]">
+                                history
+                            </span>
+                        </Link>
                     </Button>
-                    <Button
-                        size="icon"
-                        variant="ghost"
-                        disabled
-                        title="Working-copy download will be available in a later release"
-                        aria-label={`Download working copy for ${row.original.evidence_number}`}
-                    >
-                        <span
-                            aria-hidden="true"
-                            className="material-symbols-outlined text-[17px]"
+                    <Button size="icon" variant="ghost" asChild>
+                        <Link
+                            href={EvidenceVerificationComparisonController.index({
+                                query: { evidence: row.original.evidence_number },
+                            })}
+                            title={`Verify ${row.original.evidence_number}`}
+                            aria-label={`Verify ${row.original.evidence_number}`}
                         >
-                            download
-                        </span>
+                            <span aria-hidden="true" className="material-symbols-outlined text-[17px]">
+                                fact_check
+                            </span>
+                        </Link>
                     </Button>
                 </div>
             ),
@@ -193,19 +193,13 @@ export function CaseEvidenceRegister({
                 title="Associated evidence inventory"
                 description={`${evidence.length} registered exhibit${evidence.length === 1 ? "" : "s"} in this case`}
                 headerAction={
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        disabled
-                        title="Hash manifest export will be available in a later release"
-                    >
-                        <span
-                            aria-hidden="true"
-                            className="material-symbols-outlined text-[16px]"
-                        >
-                            download
-                        </span>
-                        Export hash manifest
+                    <Button size="sm" variant="outline" asChild>
+                        <a href={EvidenceController.export({ query: { case: caseNumber } }).url}>
+                            <span aria-hidden="true" className="material-symbols-outlined text-[16px]">
+                                download
+                            </span>
+                            Export hash manifest
+                        </a>
                     </Button>
                 }
                 columns={columns}
@@ -270,13 +264,10 @@ export function CaseEvidenceRegister({
                         title="Physical custody"
                         description="Storage and locker assignment"
                         action={
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                disabled
-                                title="Physical custody management will be available in a later release"
-                            >
-                                Assign storage
+                            <Button size="sm" variant="outline" asChild>
+                                <Link href={CustodyController.index({ query: { case: caseNumber } })}>
+                                    Manage custody
+                                </Link>
                             </Button>
                         }
                     />
@@ -291,11 +282,11 @@ export function CaseEvidenceRegister({
                         </span>
                         <div>
                             <p className="text-sm font-semibold text-slate-800">
-                                Storage location not tracked
+                                Custody records available
                             </p>
                             <p className="pt-1 text-xs leading-5 text-slate-500">
-                                Locker, vault, and transfer records will appear
-                                here when the custody module is enabled.
+                                Review current custodians, pending transfers,
+                                and completed custody activity for this case.
                             </p>
                         </div>
                     </div>

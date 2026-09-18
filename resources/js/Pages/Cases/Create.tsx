@@ -2,10 +2,11 @@ import CaseController from "@/actions/App/Http/Controllers/CaseController";
 import InputError from "@/Components/InputError";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useNotificationDialog } from "@/components/notifications/NotificationDialogProvider";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { PageProps } from "@/types";
 import { Head, Link, useForm } from "@inertiajs/react";
-import { FormEventHandler, useState } from "react";
+import { FormEventHandler, useEffect, useState } from "react";
 
 const MATTER_CATEGORIES = [
     "Intellectual Property & Data Theft",
@@ -81,11 +82,37 @@ export default function Create({ auth }: PageProps) {
     const [retentionPolicy, setRetentionPolicy] = useState(
         "7 Years (Standard Federal Statute)",
     );
+    const [securityTier, setSecurityTier] = useState(SECURITY_TIERS[0]);
+    const { notify } = useNotificationDialog();
 
     const { data, setData, post, processing, errors, transform } = useForm({
         title: "",
         description: "",
     });
+
+    useEffect(() => {
+        const storedDraft = window.localStorage.getItem("h1-case-intake-draft");
+
+        if (!storedDraft) return;
+
+        try {
+            const draft = JSON.parse(storedDraft) as Record<string, unknown>;
+            setData("title", typeof draft.title === "string" ? draft.title : "");
+            setSummary(typeof draft.summary === "string" ? draft.summary : "");
+            setPriority(typeof draft.priority === "string" ? draft.priority : priority);
+            setCategory(typeof draft.category === "string" ? draft.category : category);
+            setDocketRef(typeof draft.docketRef === "string" ? draft.docketRef : "");
+            setJudicialAuthority(typeof draft.judicialAuthority === "string" ? draft.judicialAuthority : "");
+            setDeadline(typeof draft.deadline === "string" ? draft.deadline : "");
+            setStandards(Array.isArray(draft.standards) ? draft.standards.filter((item): item is string => typeof item === "string") : []);
+            setRetentionPolicy(typeof draft.retentionPolicy === "string" ? draft.retentionPolicy : retentionPolicy);
+            setSecurityTier(typeof draft.securityTier === "string" ? draft.securityTier : securityTier);
+        } catch {
+            window.localStorage.removeItem("h1-case-intake-draft");
+        }
+        // Restore once when the intake page mounts.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const toggleStandard = (standard: string) => {
         setStandards((prev) =>
@@ -124,6 +151,7 @@ export default function Create({ auth }: PageProps) {
             standards.length > 0 &&
                 `Compliance standards: ${standards.join(", ")}`,
             retentionPolicy && `Retention policy: ${retentionPolicy}`,
+            securityTier && `Access security tier: ${securityTier}`,
         ]
             .filter(Boolean)
             .join("\n");
@@ -133,7 +161,39 @@ export default function Create({ auth }: PageProps) {
             description: composedDescription,
         }));
 
-        post(CaseController.store().url);
+        post(CaseController.store().url, {
+            onSuccess: () => window.localStorage.removeItem("h1-case-intake-draft"),
+        });
+    };
+
+    const saveDraft = () => {
+        window.localStorage.setItem(
+            "h1-case-intake-draft",
+            JSON.stringify({
+                title: data.title,
+                summary,
+                priority,
+                category,
+                docketRef,
+                judicialAuthority,
+                deadline,
+                standards,
+                retentionPolicy,
+                securityTier,
+            }),
+        );
+        notify({
+            title: "Draft saved on this device",
+            message: "Your case intake values will remain available in this browser until the case is created or the browser data is cleared.",
+            tone: "success",
+        });
+    };
+
+    const continueToTeam = () => {
+        document.getElementById("case-team-section")?.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+        });
     };
 
     return (
@@ -604,10 +664,9 @@ export default function Create({ auth }: PageProps) {
                                         </label>
                                         <select
                                             id="security_tier"
-                                            disabled
-                                            defaultValue={SECURITY_TIERS[0]}
-                                            title="Per-tier access enforcement isn't implemented yet"
-                                            className="h-10 w-full cursor-not-allowed rounded-md border border-border bg-slate-50 px-3 text-sm text-slate-400 shadow-sm focus:outline-none"
+                                            value={securityTier}
+                                            onChange={(event) => setSecurityTier(event.target.value)}
+                                            className="h-10 w-full rounded-md border border-border bg-white px-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
                                         >
                                             {SECURITY_TIERS.map((tier) => (
                                                 <option key={tier}>
@@ -616,8 +675,7 @@ export default function Create({ auth }: PageProps) {
                                             ))}
                                         </select>
                                         <span className="font-mono text-[11px] text-slate-400">
-                                            Not enforced yet — informational
-                                            only.
+                                            Recorded with the case for reviewer visibility.
                                         </span>
                                     </div>
                                 </div>
@@ -636,8 +694,7 @@ export default function Create({ auth }: PageProps) {
                                     <Button
                                         variant="outline"
                                         type="button"
-                                        disabled
-                                        title="Draft persistence isn't available yet"
+                                        onClick={saveDraft}
                                     >
                                         <span className="material-symbols-outlined text-[18px]">
                                             save
@@ -649,8 +706,7 @@ export default function Create({ auth }: PageProps) {
                                     <Button
                                         variant="outline"
                                         type="button"
-                                        disabled
-                                        title="Team assignment isn't available yet"
+                                        onClick={continueToTeam}
                                     >
                                         Continue to Team Assignment
                                         <span className="material-symbols-outlined text-[18px]">
@@ -674,7 +730,7 @@ export default function Create({ auth }: PageProps) {
                         </div>
 
                         <div className="flex flex-col gap-4 lg:col-span-4">
-                            <div className="flex flex-col gap-3 rounded-md border border-slate-200 bg-white p-4 shadow-sm">
+                            <div id="case-team-section" className="flex flex-col gap-3 rounded-md border border-slate-200 bg-white p-4 shadow-sm">
                                 <div className="flex items-center justify-between">
                                     <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
                                         <span className="material-symbols-outlined text-[20px] text-secondary">
@@ -720,9 +776,12 @@ export default function Create({ auth }: PageProps) {
                                         </span>
                                         <button
                                             type="button"
-                                            disabled
-                                            title="Team assignment isn't available yet"
-                                            className="font-mono text-[11px] font-normal normal-case text-slate-300"
+                                            onClick={() => notify({
+                                                title: "Create the case first",
+                                                message: "Additional personnel can be assigned after the case record has a permanent case number.",
+                                                tone: "info",
+                                            })}
+                                            className="font-mono text-[11px] font-normal normal-case text-secondary hover:underline"
                                         >
                                             + Add Member
                                         </button>

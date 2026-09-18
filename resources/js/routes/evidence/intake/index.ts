@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, applyUrlDefaults } from './../../../wayfinder'
 /**
 * @see \App\Http\Controllers\EvidenceController::complete
-* @see app/Http/Controllers/EvidenceController.php:290
+* @see app/Http/Controllers/EvidenceController.php:362
 * @route '/evidence/{evidence}/complete-intake'
 */
 export const complete = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
@@ -16,7 +16,7 @@ complete.definition = {
 
 /**
 * @see \App\Http\Controllers\EvidenceController::complete
-* @see app/Http/Controllers/EvidenceController.php:290
+* @see app/Http/Controllers/EvidenceController.php:362
 * @route '/evidence/{evidence}/complete-intake'
 */
 complete.url = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions) => {
@@ -49,7 +49,7 @@ complete.url = (args: { evidence: string | { evidence_number: string } } | [evid
 
 /**
 * @see \App\Http\Controllers\EvidenceController::complete
-* @see app/Http/Controllers/EvidenceController.php:290
+* @see app/Http/Controllers/EvidenceController.php:362
 * @route '/evidence/{evidence}/complete-intake'
 */
 complete.patch = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions): RouteDefinition<'patch'> => ({

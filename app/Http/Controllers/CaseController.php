@@ -12,11 +12,13 @@ use App\Models\CaseFile;
 use App\Models\Evidence;
 use App\Models\PhysicalSource;
 use App\Services\IdentifierService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CaseController extends Controller
 {
@@ -32,19 +34,12 @@ class CaseController extends Controller
 
         $user = $request->user();
         $status = $request->string('status')->toString() ?: null;
-        $search = $request->string('search')->toString() ?: null;
 
         $visibleCaseIds = CaseFile::query()->visibleTo($user)->pluck('id');
 
-        $cases = CaseFile::query()
-            ->visibleTo($user)
+        $cases = $this->filteredCases($request)
             ->withCount('evidence')
             ->with('caseManager:id,name')
-            ->when($status, fn ($query) => $query->where('status', $status))
-            ->when($search, fn ($query) => $query->where(function ($query) use ($search) {
-                $query->where('title', 'like', "%{$search}%")
-                    ->orWhere('case_number', 'like', "%{$search}%");
-            }))
             ->latest('updated_at')
             ->paginate(15)
             ->withQueryString();
@@ -59,7 +54,24 @@ class CaseController extends Controller
 
         return Inertia::render('Cases/Index', [
             'cases' => CaseSummaryResource::collection($cases),
-            'filters' => ['status' => $status, 'search' => $search],
+            'filters' => $request->only(['status', 'search', 'priority', 'category', 'lead', 'jurisdiction']),
+            'filterOptions' => [
+                'leads' => CaseFile::query()->visibleTo($user)
+                    ->whereNotNull('case_manager_id')
+                    ->with('caseManager:id,name')
+                    ->get()
+                    ->pluck('caseManager')
+                    ->filter()
+                    ->unique('id')
+                    ->values(),
+                'jurisdictions' => CaseFile::query()->visibleTo($user)
+                    ->pluck('description')
+                    ->map(fn (?string $description) => $this->descriptionValue($description, 'Issuing judicial authority'))
+                    ->filter()
+                    ->unique()
+                    ->sort()
+                    ->values(),
+            ],
             'statusCounts' => [
                 'OPEN' => $statusCounts[CaseStatus::OPEN] ?? 0,
                 'IN_PROGRESS' => $statusCounts[CaseStatus::IN_PROGRESS] ?? 0,
@@ -73,6 +85,41 @@ class CaseController extends Controller
                 'archived_total' => $statusCounts[CaseStatus::ARCHIVED] ?? 0,
             ],
             'canCreate' => Gate::allows('create', CaseFile::class),
+        ]);
+    }
+
+    /**
+     * Stream the filtered case register as CSV.
+     */
+    public function export(Request $request): StreamedResponse
+    {
+        $this->authorize('viewAny', CaseFile::class);
+        $records = $this->filteredCases($request)
+            ->with('caseManager:id,name')
+            ->withCount('evidence')
+            ->latest('updated_at')
+            ->cursor();
+
+        return response()->streamDownload(function () use ($records): void {
+            $output = fopen('php://output', 'wb');
+            fputcsv($output, ['Case ID', 'Title', 'Status', 'Case Manager', 'Evidence Items', 'Opened At', 'Updated At']);
+
+            foreach ($records as $case) {
+                fputcsv($output, [
+                    $case->case_number,
+                    $this->csvValue($case->title),
+                    $case->status,
+                    $this->csvValue($case->caseManager?->name ?? ''),
+                    $case->evidence_count,
+                    $case->opened_at?->toIso8601String(),
+                    $case->updated_at?->toIso8601String(),
+                ]);
+            }
+
+            fclose($output);
+        }, 'case-register-'.now()->format('Ymd-His').'.csv', [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Cache-Control' => 'private, no-store',
         ]);
     }
 
@@ -262,5 +309,55 @@ class CaseController extends Controller
         }
 
         return $entries->sortBy('at')->values()->all();
+    }
+
+    /**
+     * Build the authorized case query shared by the register and export.
+     */
+    private function filteredCases(Request $request): Builder
+    {
+        $status = $request->string('status')->toString();
+        $search = trim($request->string('search')->toString());
+        $priority = $request->string('priority')->toString();
+        $category = $request->string('category')->toString();
+        $jurisdiction = $request->string('jurisdiction')->toString();
+        $lead = $request->integer('lead');
+        $caseNumbers = array_values(array_filter(explode(',', $request->string('case_numbers')->toString())));
+
+        return CaseFile::query()
+            ->visibleTo($request->user())
+            ->when(in_array($status, CaseStatus::getValues(), true), fn (Builder $query) => $query->where('status', $status))
+            ->when($search !== '', fn (Builder $query) => $query->where(function (Builder $query) use ($search) {
+                $query->where('title', 'like', "%{$search}%")
+                    ->orWhere('case_number', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            }))
+            ->when($priority !== '', fn (Builder $query) => $query->where('description', 'like', "%Priority: {$priority}%"))
+            ->when($category !== '', fn (Builder $query) => $query->where('description', 'like', "%Matter category: {$category}%"))
+            ->when($jurisdiction !== '', fn (Builder $query) => $query->where('description', 'like', "%Issuing judicial authority: {$jurisdiction}%"))
+            ->when($lead > 0, fn (Builder $query) => $query->where('case_manager_id', $lead))
+            ->when($caseNumbers !== [], fn (Builder $query) => $query->whereIn('case_number', $caseNumbers));
+    }
+
+    /**
+     * Prevent spreadsheet software from interpreting exported text as formulas.
+     */
+    private function csvValue(string $value): string
+    {
+        return preg_match('/^[=+\-@]/', $value) === 1 ? "'{$value}" : $value;
+    }
+
+    /**
+     * Read one intake metadata line from a case description.
+     */
+    private function descriptionValue(?string $description, string $label): ?string
+    {
+        foreach (preg_split('/\R/', $description ?? '') ?: [] as $line) {
+            if (str_starts_with($line, "{$label}: ")) {
+                return trim(substr($line, strlen($label) + 2));
+            }
+        }
+
+        return null;
     }
 }

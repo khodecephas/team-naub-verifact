@@ -1,7 +1,8 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, applyUrlDefaults } from './../../wayfinder'
+import chunks from './chunks'
 /**
 * @see \App\Http\Controllers\EvidenceVerificationComparisonController::index
-* @see app/Http/Controllers/EvidenceVerificationComparisonController.php:20
+* @see app/Http/Controllers/EvidenceVerificationComparisonController.php:25
 * @route '/verify'
 */
 export const index = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -16,7 +17,7 @@ index.definition = {
 
 /**
 * @see \App\Http\Controllers\EvidenceVerificationComparisonController::index
-* @see app/Http/Controllers/EvidenceVerificationComparisonController.php:20
+* @see app/Http/Controllers/EvidenceVerificationComparisonController.php:25
 * @route '/verify'
 */
 index.url = (options?: RouteQueryOptions) => {
@@ -25,7 +26,7 @@ index.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\EvidenceVerificationComparisonController::index
-* @see app/Http/Controllers/EvidenceVerificationComparisonController.php:20
+* @see app/Http/Controllers/EvidenceVerificationComparisonController.php:25
 * @route '/verify'
 */
 index.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -35,7 +36,7 @@ index.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\EvidenceVerificationComparisonController::index
-* @see app/Http/Controllers/EvidenceVerificationComparisonController.php:20
+* @see app/Http/Controllers/EvidenceVerificationComparisonController.php:25
 * @route '/verify'
 */
 index.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -45,7 +46,7 @@ index.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
 /**
 * @see \App\Http\Controllers\EvidenceVerificationComparisonController::store
-* @see app/Http/Controllers/EvidenceVerificationComparisonController.php:87
+* @see app/Http/Controllers/EvidenceVerificationComparisonController.php:248
 * @route '/verify/{evidence}'
 */
 export const store = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -60,7 +61,7 @@ store.definition = {
 
 /**
 * @see \App\Http\Controllers\EvidenceVerificationComparisonController::store
-* @see app/Http/Controllers/EvidenceVerificationComparisonController.php:87
+* @see app/Http/Controllers/EvidenceVerificationComparisonController.php:248
 * @route '/verify/{evidence}'
 */
 store.url = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions) => {
@@ -93,7 +94,7 @@ store.url = (args: { evidence: string | { evidence_number: string } } | [evidenc
 
 /**
 * @see \App\Http\Controllers\EvidenceVerificationComparisonController::store
-* @see app/Http/Controllers/EvidenceVerificationComparisonController.php:87
+* @see app/Http/Controllers/EvidenceVerificationComparisonController.php:248
 * @route '/verify/{evidence}'
 */
 store.post = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -242,6 +243,7 @@ send.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 const verification = {
     index: Object.assign(index, index),
+    chunks: Object.assign(chunks, chunks),
     store: Object.assign(store, store),
     notice: Object.assign(notice, notice),
     verify: Object.assign(verify, verify),

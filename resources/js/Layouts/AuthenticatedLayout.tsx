@@ -6,12 +6,14 @@ import EvidenceController from "@/actions/App/Http/Controllers/EvidenceControlle
 import EvidenceVerificationComparisonController from "@/actions/App/Http/Controllers/EvidenceVerificationComparisonController";
 import ProfileController from "@/actions/App/Http/Controllers/ProfileController";
 import ReportController from "@/actions/App/Http/Controllers/ReportController";
+import SearchController from "@/actions/App/Http/Controllers/SearchController";
 import ApplicationLogo from "@/Components/ApplicationLogo";
 import Dropdown from "@/Components/Dropdown";
 import { FlashNotificationDialog } from "@/components/notifications/FlashNotificationDialog";
+import { useNotificationDialog } from "@/components/notifications/NotificationDialogProvider";
 import { PageProps } from "@/types";
-import { Link, usePage } from "@inertiajs/react";
-import { PropsWithChildren, ReactNode, useState } from "react";
+import { Link, router, usePage } from "@inertiajs/react";
+import { FormEvent, PropsWithChildren, ReactNode, useState } from "react";
 
 interface NavigationItem {
     label: string;
@@ -129,6 +131,15 @@ export default function AuthenticatedLayout({
     const { auth } = usePage<PageProps>().props;
     const currentPath = usePage().url.split("?")[0];
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [search, setSearch] = useState("");
+    const { notify } = useNotificationDialog();
+    const submitSearch = (event: FormEvent) => {
+        event.preventDefault();
+
+        if (search.trim()) {
+            router.get(SearchController.index().url, { q: search.trim() });
+        }
+    };
 
     return (
         <div className="min-h-screen bg-slate-100 font-body-md text-slate-900 antialiased">
@@ -162,7 +173,10 @@ export default function AuthenticatedLayout({
                         <Navigation currentPath={currentPath} />
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                        <div className="relative hidden xl:block">
+                        <form
+                            onSubmit={submitSearch}
+                            className="relative hidden xl:block"
+                        >
                             <span
                                 aria-hidden="true"
                                 className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[17px] text-slate-400"
@@ -170,13 +184,15 @@ export default function AuthenticatedLayout({
                                 search
                             </span>
                             <input
-                                disabled
-                                title="Global search is not available yet"
-                                aria-label="Global search, not available yet"
-                                placeholder="Search cases and evidence"
-                                className="h-9 w-56 cursor-not-allowed rounded border border-slate-600 bg-slate-800 pl-9 pr-3 text-xs text-slate-300 placeholder:text-slate-500"
+                                value={search}
+                                onChange={(event) =>
+                                    setSearch(event.target.value)
+                                }
+                                aria-label="Search cases, evidence, and reports"
+                                placeholder="Search all records"
+                                className="h-9 w-56 rounded border border-slate-600 bg-slate-800 pl-9 pr-3 text-xs text-slate-100 placeholder:text-slate-500 focus:border-blue-400 focus:outline-none"
                             />
-                        </div>
+                        </form>
                         <span
                             className="hidden items-center gap-1.5 rounded border border-emerald-800/70 bg-emerald-950/40 px-2 py-1 text-[10px] font-semibold text-emerald-300 md:flex"
                             title="Application session is connected"
@@ -185,11 +201,17 @@ export default function AuthenticatedLayout({
                             Connected
                         </span>
                         <button
-                            disabled
                             type="button"
-                            title="Notifications are not available yet"
-                            aria-label="Notifications, not available yet"
-                            className="relative flex h-9 w-9 cursor-not-allowed items-center justify-center rounded text-slate-400"
+                            title="Notifications"
+                            aria-label="Open notifications"
+                            onClick={() =>
+                                notify({
+                                    title: "You're up to date",
+                                    message: "There are no new system notifications requiring your attention.",
+                                    tone: "info",
+                                })
+                            }
+                            className="relative flex h-9 w-9 items-center justify-center rounded text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
                         >
                             <span
                                 aria-hidden="true"

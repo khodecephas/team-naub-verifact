@@ -245,6 +245,22 @@ export default function Verify({
         clearCurrentComparison();
     };
 
+    const selectComparisonFile = (file: File | null) => {
+        if (file && file.size > maxUploadSizeKb * 1024) {
+            form.setData("file", null);
+            form.setError(
+                "file",
+                `The selected file exceeds the ${formatBytes(maxUploadSizeKb * 1024)} server upload limit.`,
+            );
+
+            return;
+        }
+
+        form.setData("file", file);
+        form.clearErrors("file");
+        setResultDismissed(true);
+    };
+
     const submitComparison = () => {
         if (!selectedEvidence || !form.data.file) {
             return;
@@ -478,11 +494,7 @@ export default function Verify({
                                 file={form.data.file}
                                 error={form.errors.file}
                                 maxUploadSizeKb={maxUploadSizeKb}
-                                onSelect={(file) => {
-                                    form.setData("file", file);
-                                    form.clearErrors("file");
-                                    setResultDismissed(true);
-                                }}
+                                onSelect={selectComparisonFile}
                             />
                         </div>
                     </article>

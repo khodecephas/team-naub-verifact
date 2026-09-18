@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\UserRole;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -58,6 +60,29 @@ class Evidence extends Model
     public function getRouteKeyName(): string
     {
         return 'evidence_number';
+    }
+
+    /**
+     * Limit evidence queries to records the user may view.
+     */
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        $canViewAllUnassigned = in_array(
+            $user->role,
+            [UserRole::ADMINISTRATOR, UserRole::AUDITOR],
+            true,
+        );
+
+        return $query->where(function (Builder $query) use ($user, $canViewAllUnassigned) {
+            $query->whereHas('case', fn (Builder $caseQuery) => $caseQuery->visibleTo($user))
+                ->orWhere(function (Builder $unassignedQuery) use ($user, $canViewAllUnassigned) {
+                    $unassignedQuery->whereNull('case_id');
+
+                    if (! $canViewAllUnassigned) {
+                        $unassignedQuery->where('registered_by', $user->id);
+                    }
+                });
+        });
     }
 
     /**

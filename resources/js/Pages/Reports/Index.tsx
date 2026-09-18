@@ -6,6 +6,7 @@ import { DataTable } from "@/components/ui/data-table";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, Link, router } from "@inertiajs/react";
 import type { ColumnDef } from "@tanstack/react-table";
+import { useState } from "react";
 
 interface ReportDownload {
     downloaded_at: string;
@@ -54,6 +55,7 @@ export default function Index({
     caseOptions,
     canCreate,
 }: Props) {
+    const [view, setView] = useState<"table" | "grid">("table");
     const hasFilters = Object.values(filters).some(Boolean);
     const setFilter = (
         key: "status" | "case" | "downloaded",
@@ -205,9 +207,18 @@ export default function Index({
                             ? "bg-red-50 ring-1 ring-inset ring-red-300 hover:bg-red-50"
                             : undefined
                     }
+                    displayMode={view}
+                    getRowId={(report) => report.report_number}
+                    renderGridItem={(report) => (
+                        <ReportGridCard report={report} />
+                    )}
                     filterTrigger={
                         <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-1">
-                            <Button size="sm" variant="secondary">
+                            <Button
+                                size="sm"
+                                variant={view === "table" ? "secondary" : "ghost"}
+                                onClick={() => setView("table")}
+                            >
                                 <span className="material-symbols-outlined text-[16px]">
                                     table_rows
                                 </span>
@@ -215,9 +226,8 @@ export default function Index({
                             </Button>
                             <Button
                                 size="sm"
-                                variant="ghost"
-                                disabled
-                                title="Grid view is not available yet"
+                                variant={view === "grid" ? "secondary" : "ghost"}
+                                onClick={() => setView("grid")}
                             >
                                 <span className="material-symbols-outlined text-[16px]">
                                     grid_view
@@ -280,6 +290,32 @@ export default function Index({
                 />
             </div>
         </AuthenticatedLayout>
+    );
+}
+
+function ReportGridCard({ report }: { report: ReportRow }) {
+    return (
+        <Link
+            href={ReportController.show(report.report_number)}
+            className={`block rounded-md border p-4 transition-colors hover:border-blue-300 ${report.content_verified === false ? "border-red-300 bg-red-50" : "border-slate-200 hover:bg-blue-50/40"}`}
+        >
+            <div className="flex items-start justify-between gap-3">
+                <span className="font-mono text-xs font-bold text-secondary">
+                    {report.report_number}
+                </span>
+                <ReportStatusBadge status={report.status} />
+            </div>
+            <h3 className="mt-3 line-clamp-2 text-sm font-semibold text-slate-900">
+                {report.title}
+            </h3>
+            <p className="mt-2 font-mono text-xs text-slate-500">
+                {report.case_number}
+            </p>
+            <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
+                <span>{report.downloads_count} deliveries</span>
+                <span>{dateTime(report.generated_at)}</span>
+            </div>
+        </Link>
     );
 }
 

@@ -8,6 +8,7 @@ use App\Http\Controllers\EvidenceController;
 use App\Http\Controllers\EvidenceVerificationComparisonController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SearchController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -26,6 +27,8 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
     ->name('dashboard');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/search', [SearchController::class, 'index'])->name('search.index');
+
     /*
         Profile
     */
@@ -40,6 +43,7 @@ Route::middleware('auth')->group(function () {
     */
     Route::controller(CaseController::class)->group(function () {
         Route::get('/cases', 'index')->name('cases.index');
+        Route::get('/cases-export.csv', 'export')->name('cases.export');
         Route::get('/cases/create', 'create')->name('cases.create');
         Route::post('/cases', 'store')->name('cases.store');
         Route::get('/cases/{caseFile}', 'show')->name('cases.show');
@@ -51,6 +55,8 @@ Route::middleware('auth')->group(function () {
     */
     Route::controller(EvidenceController::class)->group(function () {
         Route::get('/evidence', 'index')->name('evidence.index');
+        Route::get('/evidence-export.csv', 'export')->name('evidence.export');
+        Route::post('/evidence/batch-verify', 'verifyBatch')->name('evidence.batch-verify');
         Route::get('/evidence/quick-ingest', 'quickCreate')->name('evidence.quick-ingest.create');
         Route::post('/evidence/quick-ingest', 'quickStore')->name('evidence.quick-ingest.store');
         Route::get('/cases/{caseFile}/evidence/create', 'create')->name('evidence.create');
@@ -72,6 +78,8 @@ Route::middleware('auth')->group(function () {
 
     Route::controller(EvidenceVerificationComparisonController::class)->group(function () {
         Route::get('/verify', 'index')->name('verification.index');
+        Route::post('/verify/{evidence}/chunks', 'uploadChunk')->name('verification.chunks.store');
+        Route::post('/verify/{evidence}/complete', 'completeChunkUpload')->name('verification.chunks.complete');
         Route::post('/verify/{evidence}', 'store')->name('verification.store');
     });
 

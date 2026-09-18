@@ -1,10 +1,11 @@
 import CaseController from "@/actions/App/Http/Controllers/CaseController";
 import EvidenceController from "@/actions/App/Http/Controllers/EvidenceController";
+import EvidenceVerificationComparisonController from "@/actions/App/Http/Controllers/EvidenceVerificationComparisonController";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { Evidence, PaginatedEvidence } from "@/types/evidence";
-import { Link } from "@inertiajs/react";
+import { Link, router } from "@inertiajs/react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useState } from "react";
 import type { ReactNode } from "react";
@@ -68,6 +69,7 @@ export function EvidenceRegistryTable({
     filterPanel,
 }: EvidenceRegistryTableProps) {
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const [view, setView] = useState<"table" | "grid" | "timeline">("table");
     const visibleIds = evidence.data.map((item) => item.id);
     const allVisibleSelected =
         visibleIds.length > 0 &&
@@ -228,19 +230,18 @@ export function EvidenceRegistryTable({
                             Open
                         </Link>
                     </Button>
-                    <Button
-                        size="icon"
-                        variant="ghost"
-                        disabled
-                        title="Evidence actions will be available in a later release"
-                        aria-label={`More actions for ${row.original.evidence_number}`}
-                    >
-                        <span
-                            aria-hidden="true"
-                            className="material-symbols-outlined text-lg"
+                    <Button size="icon" variant="ghost" asChild>
+                        <Link
+                            href={EvidenceVerificationComparisonController.index({
+                                query: {
+                                    evidence: row.original.evidence_number,
+                                },
+                            })}
+                            title={`Compare ${row.original.evidence_number}`}
+                            aria-label={`Compare ${row.original.evidence_number}`}
                         >
-                            more_vert
-                        </span>
+                            <span aria-hidden="true" className="material-symbols-outlined text-lg">fact_check</span>
+                        </Link>
                     </Button>
                 </div>
             ),
@@ -271,49 +272,26 @@ export function EvidenceRegistryTable({
                     ? "No evidence matches this search."
                     : "No evidence has been registered."
             }
+            displayMode={view}
+            getRowId={(item) => item.evidence_number}
+            renderGridItem={(item) => <EvidenceGridCard evidence={item} />}
+            renderTimelineItem={(item) => <EvidenceTimelineRow evidence={item} />}
             filterTrigger={
                 <div className="flex items-center gap-1 rounded border border-slate-200 bg-slate-50 p-1">
-                    <Button
-                        size="icon"
-                        variant="ghost"
-                        aria-label="List view"
-                        title="List view"
-                    >
-                        <span
-                            aria-hidden="true"
-                            className="material-symbols-outlined text-[18px]"
+                    {(["table", "grid", "timeline"] as const).map((mode) => (
+                        <Button
+                            key={mode}
+                            size="icon"
+                            variant={view === mode ? "secondary" : "ghost"}
+                            aria-label={`${mode} view`}
+                            title={`${mode} view`}
+                            onClick={() => setView(mode)}
                         >
-                            view_list
-                        </span>
-                    </Button>
-                    <Button
-                        size="icon"
-                        variant="ghost"
-                        disabled
-                        aria-label="Grid view"
-                        title="Grid view will be available in a later release"
-                    >
-                        <span
-                            aria-hidden="true"
-                            className="material-symbols-outlined text-[18px]"
-                        >
-                            grid_view
-                        </span>
-                    </Button>
-                    <Button
-                        size="icon"
-                        variant="ghost"
-                        disabled
-                        aria-label="Timeline view"
-                        title="Timeline view will be available in a later release"
-                    >
-                        <span
-                            aria-hidden="true"
-                            className="material-symbols-outlined text-[18px]"
-                        >
-                            view_timeline
-                        </span>
-                    </Button>
+                            <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
+                                {mode === "table" ? "view_list" : mode === "grid" ? "grid_view" : "view_timeline"}
+                            </span>
+                        </Button>
+                    ))}
                 </div>
             }
             filterPanel={filterPanel}
@@ -328,26 +306,29 @@ export function EvidenceRegistryTable({
                             <Button
                                 size="sm"
                                 variant="outline"
-                                disabled
-                                title="Batch verification will be available in a later release"
+                                onClick={() =>
+                                    router.post(
+                                        EvidenceController.verifyBatch().url,
+                                        {
+                                            evidence_numbers: evidence.data
+                                                .filter((item) => selectedIds.includes(item.id))
+                                                .map((item) => item.evidence_number),
+                                        },
+                                        { preserveScroll: true },
+                                    )
+                                }
                             >
                                 Verify integrity
                             </Button>
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                disabled
-                                title="Custody transfers will be available in a later release"
-                            >
-                                Transfer custody
+                            <Button size="sm" variant="outline" asChild>
+                                <Link href={EvidenceVerificationComparisonController.index({ query: { evidence: evidence.data.find((item) => item.id === selectedIds[0])?.evidence_number } })}>
+                                    Compare first selected
+                                </Link>
                             </Button>
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                disabled
-                                title="Manifest export will be available in a later release"
-                            >
-                                Export manifest
+                            <Button size="sm" variant="outline" asChild>
+                                <a href={`${EvidenceController.export().url}?evidence_numbers=${encodeURIComponent(evidence.data.filter((item) => selectedIds.includes(item.id)).map((item) => item.evidence_number).join(","))}`}>
+                                    Export manifest
+                                </a>
                             </Button>
                             <Button
                                 size="sm"
@@ -361,5 +342,33 @@ export function EvidenceRegistryTable({
                 ) : null
             }
         />
+    );
+}
+
+function EvidenceGridCard({ evidence }: { evidence: Evidence }) {
+    return (
+        <Link href={EvidenceController.show(evidence.evidence_number)} className="block rounded-md border border-slate-200 p-4 transition-colors hover:border-blue-300 hover:bg-blue-50/40">
+            <div className="flex items-start justify-between gap-3">
+                <span className="font-mono text-xs font-bold text-secondary">{evidence.evidence_number}</span>
+                <StatusBadge status={evidence.integrity_status} />
+            </div>
+            <h3 className="mt-3 truncate text-sm font-semibold text-slate-900">{evidence.title}</h3>
+            <p className="mt-1 truncate text-xs text-slate-500">{evidence.original_filename}</p>
+            <p className="mt-3 text-xs text-slate-500">{evidence.case?.case_number ?? "Unassigned"} · {formatBytes(evidence.file_size_bytes)}</p>
+        </Link>
+    );
+}
+
+function EvidenceTimelineRow({ evidence }: { evidence: Evidence }) {
+    return (
+        <Link href={EvidenceController.show(evidence.evidence_number)} className="flex items-start gap-4 py-4 hover:bg-slate-50">
+            <span className="mt-1 h-3 w-3 shrink-0 rounded-full bg-blue-600 ring-4 ring-blue-50" />
+            <span className="min-w-0 flex-1">
+                <span className="font-mono text-xs font-bold text-secondary">{evidence.evidence_number}</span>
+                <span className="mt-1 block truncate text-sm font-semibold text-slate-900">{evidence.title}</span>
+                <span className="mt-1 block text-xs text-slate-500">Registered {formatDate(evidence.registered_at)}</span>
+            </span>
+            <StatusBadge status={evidence.integrity_status} />
+        </Link>
     );
 }
