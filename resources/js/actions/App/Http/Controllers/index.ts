@@ -7,6 +7,8 @@ import EvidenceController from './EvidenceController'
 import EvidenceVerificationComparisonController from './EvidenceVerificationComparisonController'
 import CustodyRequestController from './CustodyRequestController'
 import ReportController from './ReportController'
+import OfflineController from './OfflineController'
+import OfflineSyncController from './OfflineSyncController'
 import Auth from './Auth'
 
 const Controllers = {
@@ -19,6 +21,8 @@ const Controllers = {
     EvidenceVerificationComparisonController: Object.assign(EvidenceVerificationComparisonController, EvidenceVerificationComparisonController),
     CustodyRequestController: Object.assign(CustodyRequestController, CustodyRequestController),
     ReportController: Object.assign(ReportController, ReportController),
+    OfflineController: Object.assign(OfflineController, OfflineController),
+    OfflineSyncController: Object.assign(OfflineSyncController, OfflineSyncController),
     Auth: Object.assign(Auth, Auth),
 }
 
