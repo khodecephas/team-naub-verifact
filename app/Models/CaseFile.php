@@ -116,6 +116,12 @@ class CaseFile extends Model
         return $this->hasMany(Report::class, 'case_id');
     }
 
+    /** Hash-chained analyst findings recorded against this case. */
+    public function findings(): HasMany
+    {
+        return $this->hasMany(Finding::class, 'case_id');
+    }
+
     /**
      * Whether the given user has a team-membership record on this case.
      * Used by policies alongside the creator/case-manager checks — being the

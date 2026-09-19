@@ -22,6 +22,22 @@ final class UploadLimit
         return min($limits);
     }
 
+    /** Return the finding attachment upload limit allowed by both H1 and the active PHP runtime. */
+    public static function findingAttachmentKilobytes(): int
+    {
+        $limits = [max(1, (int) config('evidence.finding_attachment_max_upload_size_kb'))];
+
+        foreach (['upload_max_filesize', 'post_max_size'] as $setting) {
+            $runtimeLimit = self::iniKilobytes($setting);
+
+            if ($runtimeLimit > 0) {
+                $limits[] = $runtimeLimit;
+            }
+        }
+
+        return min($limits);
+    }
+
     /** Convert a PHP size directive such as 2M or 512000K to kilobytes. */
     private static function iniKilobytes(string $setting): int
     {

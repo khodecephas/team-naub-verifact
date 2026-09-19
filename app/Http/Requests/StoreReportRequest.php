@@ -19,6 +19,8 @@ class StoreReportRequest extends FormRequest
             'case_id' => ['required', 'integer', Rule::exists('cases', 'id')],
             'evidence_ids' => ['required', 'array', 'min:1'],
             'evidence_ids.*' => ['integer', 'distinct', Rule::exists('evidence', 'id')],
+            'finding_ids' => ['nullable', 'array'],
+            'finding_ids.*' => ['integer', 'distinct', Rule::exists('findings', 'id')],
             'title' => ['required', 'string', 'max:255'],
             'introduction' => ['nullable', 'string', 'max:3000'],
             'supersedes_report_id' => ['nullable', 'integer', Rule::exists('reports', 'id')],

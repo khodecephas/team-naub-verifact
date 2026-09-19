@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'case_id',
+    'offline_collection_id',
     'label',
     'source_type',
     'description',

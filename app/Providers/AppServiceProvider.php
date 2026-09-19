@@ -7,12 +7,14 @@ use App\Models\CaseFile;
 use App\Models\CustodyRequest;
 use App\Models\Evidence;
 use App\Models\EvidenceDerivative;
+use App\Models\Finding;
 use App\Models\PhysicalSource;
 use App\Models\Report;
 use App\Policies\CaseFilePolicy;
 use App\Policies\CustodyRequestPolicy;
 use App\Policies\EvidenceDerivativePolicy;
 use App\Policies\EvidencePolicy;
+use App\Policies\FindingPolicy;
 use App\Policies\ReportPolicy;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -52,6 +54,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Evidence::class, EvidencePolicy::class);
         Gate::policy(EvidenceDerivative::class, EvidenceDerivativePolicy::class);
         Gate::policy(Report::class, ReportPolicy::class);
+        Gate::policy(Finding::class, FindingPolicy::class);
 
         // Enforced from the start so every future polymorphic relation (evidence
         // integrity checks, custody events, findings, report items) is forced to

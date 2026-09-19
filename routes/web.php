@@ -5,6 +5,9 @@ use App\Http\Controllers\CustodyRequestController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EvidenceController;
 use App\Http\Controllers\EvidenceVerificationComparisonController;
+use App\Http\Controllers\FindingController;
+use App\Http\Controllers\OfflineController;
+use App\Http\Controllers\OfflineSyncController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SearchController;
@@ -47,6 +50,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/cases', 'store')->name('cases.store');
         Route::get('/cases/{caseFile}', 'show')->name('cases.show');
         Route::post('/cases/{caseFile}/archive', 'archive')->name('cases.archive');
+    });
+
+    Route::controller(FindingController::class)->group(function () {
+        Route::get('/cases/{caseFile}/findings/create', 'create')->name('cases.findings.create');
+        Route::post('/cases/{caseFile}/findings', 'store')->name('cases.findings.store');
+        Route::get('/findings/{finding}/attachment', 'downloadAttachment')->name('findings.attachment.download');
     });
 
     /*
@@ -102,6 +111,21 @@ Route::middleware('auth')->group(function () {
         Route::get('/reports/{report}/download', 'download')->name('reports.download');
         Route::get('/reports/{report}', 'show')->name('reports.show');
         Route::post('/reports/{report}/finalize', 'finalize')->name('reports.finalize');
+    });
+
+    /*
+        Offline Mode
+    */
+    Route::controller(OfflineController::class)->group(function () {
+        Route::get('/offline', 'index')->name('offline.index');
+        Route::get('/offline/collect', 'collect')->name('offline.collect');
+    });
+
+    Route::controller(OfflineSyncController::class)->prefix('offline-sync')->name('offline-sync.')->group(function () {
+        Route::get('/session', 'session')->name('session');
+        Route::get('/bootstrap', 'bootstrap')->name('bootstrap');
+        Route::post('/cases/{caseFile}/physical-sources', 'syncPhysicalSource')->name('physical-sources.store');
+        Route::post('/cases/{caseFile}/evidence', 'syncEvidence')->name('evidence.store');
     });
 });
 

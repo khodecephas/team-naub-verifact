@@ -93,6 +93,22 @@ export interface CaseReport {
     downloads_count: number;
 }
 
+export interface CaseFinding {
+    finding_number: string;
+    sequence_number: number;
+    title: string;
+    narrative: string;
+    authored_by: string;
+    evidence: { evidence_number: string; title: string } | null;
+    attachment: { original_filename: string | null; size_bytes: number | null } | null;
+    occurred_at: string;
+}
+
+export interface CaseFindings {
+    items: CaseFinding[];
+    chain_verified: boolean;
+}
+
 export interface PaginatedData<T> {
     data: T[];
     links: { url: string | null; label: string; active: boolean }[];

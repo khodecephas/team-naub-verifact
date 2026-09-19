@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\CollectionSource;
 use App\Enums\UserRole;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -22,6 +23,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'title',
     'description',
     'evidence_type',
+    'collection_source',
+    'offline_collection_id',
+    'collected_at',
+    'collected_timezone',
+    'client_sha256',
     'storage_disk',
     'storage_path',
     'original_filename',
@@ -49,7 +55,17 @@ class Evidence extends Model
         return [
             'file_size_bytes' => 'integer',
             'registered_at' => 'datetime',
+            'collected_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Whether this record entered the system through the offline
+     * collection queue rather than a direct online upload.
+     */
+    public function wasCollectedOffline(): bool
+    {
+        return $this->collection_source === CollectionSource::OFFLINE;
     }
 
     /**

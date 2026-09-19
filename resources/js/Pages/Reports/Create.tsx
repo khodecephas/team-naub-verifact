@@ -17,12 +17,21 @@ interface EvidenceOption {
     integrity_status: string;
     registered_at: string;
 }
+interface FindingOption {
+    id: number;
+    finding_number: string;
+    title: string;
+    narrative: string;
+    authored_by: string;
+    occurred_at: string;
+}
 interface CaseOption {
     id: number;
     case_number: string;
     title: string;
     description: string | null;
     evidence: EvidenceOption[];
+    findings: FindingOption[];
 }
 interface FinalReport {
     id: number;
@@ -30,13 +39,30 @@ interface FinalReport {
     case_id: number;
     title: string;
 }
-const steps = [
-    "Select case",
-    "Select evidence",
-    "Findings",
-    "Report details",
-    "Review",
-];
+
+type StepKey = "case" | "evidence" | "findings" | "details" | "review";
+
+const STEP_LABELS: Record<StepKey, string> = {
+    case: "Select case",
+    evidence: "Select evidence",
+    findings: "Findings",
+    details: "Report details",
+    review: "Review",
+};
+
+const STEP_DESCRIPTIONS: Record<StepKey, string> = {
+    case: "Choose the investigation this report will explain.",
+    evidence: "Select one or more evidence records from the chosen case.",
+    findings: "Optionally include findings already recorded against this case.",
+    details: "Provide a clear title and optional introduction.",
+    review: "Confirm the information included in the draft.",
+};
+
+const dateTime = (value: string) =>
+    new Intl.DateTimeFormat(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+    }).format(new Date(value));
 
 export default function Create({
     cases,
@@ -50,10 +76,20 @@ export default function Create({
     const initialCase = cases.find(
         (item) => item.case_number === selectedCaseNumber,
     );
+    const caseLocked = Boolean(initialCase);
+    const stepKeys = useMemo<StepKey[]>(
+        () =>
+            caseLocked
+                ? ["evidence", "findings", "details", "review"]
+                : ["case", "evidence", "findings", "details", "review"],
+        [caseLocked],
+    );
     const [step, setStep] = useState(0);
+    const currentKey = stepKeys[step];
     const form = useForm({
         case_id: initialCase ? String(initialCase.id) : "",
         evidence_ids: [] as number[],
+        finding_ids: [] as number[],
         title: initialCase
             ? `Digital Evidence Integrity Report — ${initialCase.case_number}`
             : "",
@@ -68,12 +104,16 @@ export default function Create({
         selectedCase?.evidence.filter((item) =>
             form.data.evidence_ids.includes(item.id),
         ) ?? [];
+    const selectedFindings =
+        selectedCase?.findings.filter((item) =>
+            form.data.finding_ids.includes(item.id),
+        ) ?? [];
     const canContinue =
-        step === 0
+        currentKey === "case"
             ? Boolean(selectedCase)
-            : step === 1
+            : currentKey === "evidence"
               ? selectedEvidence.length > 0
-              : step === 3
+              : currentKey === "details"
                 ? form.data.title.trim().length > 0
                 : true;
 
@@ -83,6 +123,7 @@ export default function Create({
             ...data,
             case_id: id,
             evidence_ids: [],
+            finding_ids: [],
             title: chosen
                 ? `Digital Evidence Integrity Report — ${chosen.case_number}`
                 : "",
@@ -95,6 +136,13 @@ export default function Create({
             form.data.evidence_ids.includes(id)
                 ? form.data.evidence_ids.filter((value) => value !== id)
                 : [...form.data.evidence_ids, id],
+        );
+    const toggleFinding = (id: number) =>
+        form.setData(
+            "finding_ids",
+            form.data.finding_ids.includes(id)
+                ? form.data.finding_ids.filter((value) => value !== id)
+                : [...form.data.finding_ids, id],
         );
     const evidenceColumns: ColumnDef<EvidenceOption, unknown>[] = [
         {
@@ -143,6 +191,50 @@ export default function Create({
             ),
         },
     ];
+    const findingColumns: ColumnDef<FindingOption, unknown>[] = [
+        {
+            id: "select",
+            header: "Include",
+            cell: ({ row }) => (
+                <input
+                    type="checkbox"
+                    checked={form.data.finding_ids.includes(row.original.id)}
+                    onChange={() => toggleFinding(row.original.id)}
+                    aria-label={`Include ${row.original.finding_number}`}
+                    className="h-4 w-4 rounded border-slate-300"
+                />
+            ),
+        },
+        {
+            accessorKey: "finding_number",
+            header: "Finding",
+            cell: ({ row }) => (
+                <div className="max-w-md">
+                    <p className="font-mono text-xs font-bold text-secondary">
+                        {row.original.finding_number}
+                    </p>
+                    <p className="mt-1 text-sm font-semibold">{row.original.title}</p>
+                    <p className="mt-1 line-clamp-2 text-xs text-slate-500">
+                        {row.original.narrative}
+                    </p>
+                </div>
+            ),
+        },
+        {
+            id: "recorded",
+            header: "Recorded",
+            cell: ({ row }) => (
+                <div className="whitespace-nowrap">
+                    <p className="text-xs font-semibold text-slate-700">
+                        {dateTime(row.original.occurred_at)}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                        by {row.original.authored_by}
+                    </p>
+                </div>
+            ),
+        },
+    ];
 
     return (
         <AuthenticatedLayout>
@@ -163,10 +255,24 @@ export default function Create({
                     title="Create non-technical report"
                     description="Choose the records to include, review the plain-language content, then generate a draft."
                 />
-                <ol className="grid gap-2 rounded-md border border-slate-200 bg-white p-3 shadow-sm sm:grid-cols-5">
-                    {steps.map((label, index) => (
+
+                {caseLocked && initialCase ? (
+                    <div className="flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-4 py-2 text-xs text-blue-900">
+                        <span aria-hidden="true" className="material-symbols-outlined text-[16px]">
+                            folder_open
+                        </span>
+                        Creating a report for{" "}
+                        <span className="font-mono font-bold">{initialCase.case_number}</span> —{" "}
+                        {initialCase.title}
+                    </div>
+                ) : null}
+
+                <ol
+                    className={`grid gap-2 rounded-md border border-slate-200 bg-white p-3 shadow-sm ${caseLocked ? "sm:grid-cols-4" : "sm:grid-cols-5"}`}
+                >
+                    {stepKeys.map((key, index) => (
                         <li
-                            key={label}
+                            key={key}
                             className={`flex items-center gap-2 rounded px-3 py-2.5 ${step === index ? "bg-slate-900 text-white" : index < step ? "bg-blue-50 text-blue-800" : "bg-slate-50 text-slate-500"}`}
                         >
                             <span className="font-mono text-xs font-bold">
@@ -175,28 +281,18 @@ export default function Create({
                                     : String(index + 1).padStart(2, "0")}
                             </span>
                             <span className="text-xs font-semibold">
-                                {label}
+                                {STEP_LABELS[key]}
                             </span>
                         </li>
                     ))}
                 </ol>
                 <Panel>
                     <PanelHeader
-                        title={steps[step]}
-                        description={
-                            step === 0
-                                ? "Choose the investigation this report will explain."
-                                : step === 1
-                                  ? "Select one or more evidence records from the chosen case."
-                                  : step === 2
-                                    ? "Findings can be included when the findings module becomes available."
-                                    : step === 3
-                                      ? "Provide a clear title and optional introduction."
-                                      : "Confirm the information included in the draft."
-                        }
+                        title={STEP_LABELS[currentKey]}
+                        description={STEP_DESCRIPTIONS[currentKey]}
                     />
                     <div className="p-5 sm:p-6">
-                        {step === 0 && (
+                        {currentKey === "case" && (
                             <div className="grid gap-3 md:grid-cols-2">
                                 {cases.map((item) => (
                                     <button
@@ -229,7 +325,7 @@ export default function Create({
                                 )}
                             </div>
                         )}
-                        {step === 1 && (
+                        {currentKey === "evidence" && (
                             <DataTable
                                 columns={evidenceColumns}
                                 data={selectedCase?.evidence ?? []}
@@ -241,22 +337,37 @@ export default function Create({
                                 emptyMessage="This case has no evidence available for reporting."
                             />
                         )}
-                        {step === 2 && (
-                            <div className="rounded-md border border-slate-200 bg-slate-50 p-6 text-center">
-                                <span className="material-symbols-outlined text-3xl text-slate-300">
-                                    fact_check
-                                </span>
-                                <p className="mt-3 text-sm font-semibold text-slate-700">
-                                    Findings are not available yet
-                                </p>
-                                <p className="mx-auto mt-1 max-w-lg text-xs leading-5 text-slate-500">
-                                    The findings module has not been
-                                    implemented, so this report will clearly
-                                    state that no findings were included.
-                                </p>
-                            </div>
+                        {currentKey === "findings" && (
+                            selectedCase && selectedCase.findings.length > 0 ? (
+                                <DataTable
+                                    columns={findingColumns}
+                                    data={selectedCase.findings}
+                                    searchText="Search findings to include…"
+                                    searchAccessor={(item) =>
+                                        `${item.finding_number} ${item.title} ${item.narrative} ${item.authored_by}`
+                                    }
+                                    getRowId={(item) => String(item.id)}
+                                    emptyMessage="No findings have been recorded for this case."
+                                />
+                            ) : (
+                                <div className="rounded-md border border-slate-200 bg-slate-50 p-6 text-center">
+                                    <span className="material-symbols-outlined text-3xl text-slate-300">
+                                        policy
+                                    </span>
+                                    <p className="mt-3 text-sm font-semibold text-slate-700">
+                                        No findings recorded yet
+                                    </p>
+                                    <p className="mx-auto mt-1 max-w-lg text-xs leading-5 text-slate-500">
+                                        Record findings from the case&apos;s
+                                        Findings &amp; Analysis tab, then
+                                        return here to include them. This
+                                        report will clearly state that no
+                                        findings were included.
+                                    </p>
+                                </div>
+                            )
                         )}
-                        {step === 3 && (
+                        {currentKey === "details" && (
                             <div className="grid max-w-3xl gap-5">
                                 <label className="grid gap-1.5 text-xs font-semibold text-slate-700">
                                     Report title
@@ -325,7 +436,7 @@ export default function Create({
                                 </label>
                             </div>
                         )}
-                        {step === 4 && (
+                        {currentKey === "review" && (
                             <div className="grid gap-5 lg:grid-cols-2">
                                 <Review
                                     label="Case"
@@ -345,7 +456,11 @@ export default function Create({
                                 />
                                 <Review
                                     label="Findings"
-                                    value="Not included — module unavailable"
+                                    value={
+                                        selectedFindings.length > 0
+                                            ? `${selectedFindings.length} item${selectedFindings.length === 1 ? "" : "s"} included`
+                                            : "None included"
+                                    }
                                 />
                                 <div className="lg:col-span-2 rounded-md bg-blue-50 p-4 text-sm leading-6 text-blue-900">
                                     This creates a reviewable draft. The report
@@ -370,7 +485,7 @@ export default function Create({
                         >
                             Back
                         </Button>
-                        {step < 4 ? (
+                        {step < stepKeys.length - 1 ? (
                             <Button
                                 disabled={!canContinue}
                                 onClick={() => setStep((value) => value + 1)}

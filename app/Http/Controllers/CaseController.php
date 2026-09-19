@@ -12,9 +12,11 @@ use App\Http\Resources\EvidenceResource;
 use App\Models\CaseFile;
 use App\Models\Evidence;
 use App\Models\EvidenceCustodyEvent;
+use App\Models\Finding;
 use App\Models\PhysicalSource;
 use App\Models\Report;
 use App\Services\EvidenceCustodyService;
+use App\Services\FindingService;
 use App\Services\IdentifierService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -219,10 +221,48 @@ class CaseController extends Controller
             'custody' => $this->custody($caseFile),
             'reports' => $this->reports($caseFile),
             'canCreateReport' => Gate::allows('create', [Report::class, $caseFile]),
-            'initialTab' => in_array($request->string('tab')->toString(), ['overview', 'evidence', 'custody', 'reports'], true)
+            'findings' => $this->findings($caseFile),
+            'canRecordFinding' => Gate::allows('record', [Finding::class, $caseFile]),
+            'initialTab' => in_array($request->string('tab')->toString(), ['overview', 'evidence', 'custody', 'reports', 'findings'], true)
                 ? $request->string('tab')->toString()
                 : 'overview',
         ]);
+    }
+
+    /**
+     * The case's hash-chained findings ledger, oldest first, plus whether
+     * the recorded chain still verifies, for the case record's own
+     * Findings & Analysis tab.
+     *
+     * @return array{items: array<int, array<string, mixed>>, chain_verified: bool}
+     */
+    private function findings(CaseFile $caseFile): array
+    {
+        $findings = Finding::query()
+            ->where('case_id', $caseFile->id)
+            ->with(['authoredBy:id,name', 'evidence:id,evidence_number,title'])
+            ->oldest('sequence_number')
+            ->get();
+
+        return [
+            'items' => $findings->map(fn (Finding $finding) => [
+                'finding_number' => $finding->finding_number,
+                'sequence_number' => $finding->sequence_number,
+                'title' => $finding->title,
+                'narrative' => $finding->narrative,
+                'authored_by' => $finding->authoredBy->name,
+                'evidence' => $finding->evidence ? [
+                    'evidence_number' => $finding->evidence->evidence_number,
+                    'title' => $finding->evidence->title,
+                ] : null,
+                'attachment' => $finding->attachment_path ? [
+                    'original_filename' => $finding->attachment_original_filename,
+                    'size_bytes' => $finding->attachment_size_bytes,
+                ] : null,
+                'occurred_at' => $finding->occurred_at->toIso8601String(),
+            ])->all(),
+            'chain_verified' => FindingService::verifyChain($caseFile),
+        ];
     }
 
     /**

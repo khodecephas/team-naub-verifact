@@ -83,7 +83,10 @@ class ReportController extends Controller
     public function create(Request $request): Response
     {
         $cases = CaseFile::query()->visibleTo($request->user())
-            ->with(['evidence' => fn ($query) => $query->orderBy('evidence_number')])
+            ->with([
+                'evidence' => fn ($query) => $query->orderBy('evidence_number'),
+                'findings' => fn ($query) => $query->with('authoredBy:id,name')->oldest('sequence_number'),
+            ])
             ->latest('opened_at')->get();
         $cases = $cases->filter(fn (CaseFile $case) => Gate::allows('create', [Report::class, $case]));
 
@@ -100,6 +103,14 @@ class ReportController extends Controller
                     'type' => $item->evidence_type,
                     'integrity_status' => $item->integrity_status,
                     'registered_at' => $item->registered_at->toIso8601String(),
+                ]),
+                'findings' => $case->findings->map(fn ($finding) => [
+                    'id' => $finding->id,
+                    'finding_number' => $finding->finding_number,
+                    'title' => $finding->title,
+                    'narrative' => $finding->narrative,
+                    'authored_by' => $finding->authoredBy->name,
+                    'occurred_at' => $finding->occurred_at->toIso8601String(),
                 ]),
             ])->values(),
             'finalReports' => Report::query()->whereIn('case_id', $cases->pluck('id'))
@@ -119,7 +130,7 @@ class ReportController extends Controller
         $report = ReportGenerationService::createDraft(
             $case, $request->user(), $request->string('title')->toString(),
             $request->string('introduction')->toString() ?: null,
-            $request->input('evidence_ids', []), [], $supersedes,
+            $request->input('evidence_ids', []), $request->input('finding_ids', []), $supersedes,
         );
 
         return redirect()->route('reports.show', $report)->with('success', 'Report draft generated.');

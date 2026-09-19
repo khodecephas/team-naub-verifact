@@ -28,7 +28,7 @@ interface Snapshot {
     working_copy_explanation: string;
     evidence: ReportEvidence[];
     findings: { title: string; summary: string }[];
-    findings_note: string;
+    findings_note: string | null;
     conclusion: string;
 }
 interface ReportView {

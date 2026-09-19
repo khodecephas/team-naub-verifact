@@ -58,4 +58,17 @@ return [
 
     'working_copy_retention_options' => [15, 60, 240, 1440],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Finding Attachment Upload Size
+    |--------------------------------------------------------------------------
+    |
+    | Kilobytes. Finding attachments are supporting documents (reports,
+    | screenshots, exports), not raw forensic images, so this is deliberately
+    | far smaller than the evidence upload limit above.
+    |
+    */
+
+    'finding_attachment_max_upload_size_kb' => (int) env('FINDING_ATTACHMENT_MAX_UPLOAD_KB', 51200),
+
 ];

@@ -7,6 +7,7 @@ use App\Enums\IntegrityStatus;
 use App\Enums\ReportStatus;
 use App\Models\CaseFile;
 use App\Models\Evidence;
+use App\Models\Finding;
 use App\Models\Report;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -31,13 +32,14 @@ class ReportGenerationService
         ?Report $supersedes = null,
     ): Report {
         $evidence = self::selectedEvidence($case, $evidenceIds);
+        $findings = self::selectedFindings($case, $findingIds);
         if ($supersedes !== null && ($supersedes->case_id !== $case->id || $supersedes->status !== ReportStatus::FINAL)) {
             throw ValidationException::withMessages(['supersedes_report_id' => 'Only a final report from this case can be superseded.']);
         }
 
-        return DB::transaction(function () use ($case, $author, $title, $introduction, $evidence, $findingIds, $supersedes) {
+        return DB::transaction(function () use ($case, $author, $title, $introduction, $evidence, $findings, $supersedes) {
             $reportNumber = IdentifierService::next(IdentifierScope::REPORT());
-            [$snapshot, $technical] = self::buildSnapshots($case, $author, $reportNumber, $title, $introduction, $evidence);
+            [$snapshot, $technical] = self::buildSnapshots($case, $author, $reportNumber, $title, $introduction, $evidence, $findings);
 
             return Report::create([
                 'report_number' => $reportNumber,
@@ -46,7 +48,7 @@ class ReportGenerationService
                 'introduction' => $introduction,
                 'status' => ReportStatus::DRAFT,
                 'evidence_ids' => $evidence->pluck('id')->all(),
-                'finding_ids' => $findingIds,
+                'finding_ids' => $findings->pluck('id')->all(),
                 'snapshot' => $snapshot,
                 'technical_details' => $technical,
                 'generated_by' => $author->id,
@@ -66,8 +68,9 @@ class ReportGenerationService
 
             $case = CaseFile::findOrFail($locked->case_id);
             $evidence = self::selectedEvidence($case, $locked->evidence_ids);
+            $findings = self::selectedFindings($case, $locked->finding_ids ?? []);
             [$snapshot, $technical] = self::buildSnapshots(
-                $case, $actor, $locked->report_number, $locked->title, $locked->introduction, $evidence,
+                $case, $actor, $locked->report_number, $locked->title, $locked->introduction, $evidence, $findings,
             );
             $finalizedAt = now();
             $snapshot['report']['status'] = ReportStatus::FINAL;
@@ -124,8 +127,35 @@ class ReportGenerationService
         return $evidence->sortBy(fn (Evidence $item) => $ids->search($item->id))->values();
     }
 
+    /**
+     * Findings are optional, unlike evidence — an empty selection is valid
+     * and simply yields no findings section in the generated report.
+     *
+     * @param  array<int, int>  $findingIds
+     * @return Collection<int, Finding>
+     */
+    private static function selectedFindings(CaseFile $case, array $findingIds): Collection
+    {
+        $ids = collect($findingIds)->map(fn ($id) => (int) $id)->unique()->values();
+        if ($ids->isEmpty()) {
+            return collect();
+        }
+
+        $findings = Finding::query()
+            ->where('case_id', $case->id)
+            ->whereIn('id', $ids)
+            ->with('authoredBy:id,name')
+            ->get();
+
+        if ($findings->count() !== $ids->count()) {
+            throw ValidationException::withMessages(['finding_ids' => 'Every selected finding must belong to the selected case.']);
+        }
+
+        return $findings->sortBy(fn (Finding $item) => $ids->search($item->id))->values();
+    }
+
     /** @return array{array<string, mixed>, array<string, mixed>} */
-    private static function buildSnapshots(CaseFile $case, User $author, string $number, string $title, ?string $introduction, Collection $evidence): array
+    private static function buildSnapshots(CaseFile $case, User $author, string $number, string $title, ?string $introduction, Collection $evidence, Collection $findings): array
     {
         $hasProblem = false;
         $primaryEvidence = [];
@@ -202,8 +232,14 @@ class ReportGenerationService
             'integrity_explanation' => 'H1 recorded a digital fingerprint when each evidence file entered the controlled evidence system. Later checks compare the file against that recorded fingerprint. A match means no later change was detected in the registered evidence. It does not establish what happened before registration.',
             'working_copy_explanation' => 'Working copies were issued for analysis while the protected master remained in the controlled evidence store.',
             'evidence' => $primaryEvidence,
-            'findings' => [],
-            'findings_note' => 'No findings module is currently available in this deployment.',
+            'findings' => $findings->map(fn (Finding $finding) => [
+                'finding_number' => $finding->finding_number,
+                'title' => $finding->title,
+                'summary' => $finding->narrative,
+                'authored_by' => $finding->authoredBy->name,
+                'recorded_at' => $finding->occurred_at->toIso8601String(),
+            ])->all(),
+            'findings_note' => $findings->isEmpty() ? 'No findings were selected for inclusion in this report.' : null,
             'conclusion' => $hasProblem
                 ? 'One or more integrity or custody issues were detected and are identified in this report. The affected evidence should not be presented as unchanged without further review.'
                 : 'Based on the records available in H1, the evidence listed in this report matches the versions registered when they entered the controlled evidence system, where later verification was recorded. No break in the recorded custody history was detected.',

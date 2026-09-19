@@ -89,7 +89,7 @@ create.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
 /**
 * @see \App\Http\Controllers\ReportController::store
-* @see app/Http/Controllers/ReportController.php:112
+* @see app/Http/Controllers/ReportController.php:123
 * @route '/reports'
 */
 export const store = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -104,7 +104,7 @@ store.definition = {
 
 /**
 * @see \App\Http\Controllers\ReportController::store
-* @see app/Http/Controllers/ReportController.php:112
+* @see app/Http/Controllers/ReportController.php:123
 * @route '/reports'
 */
 store.url = (options?: RouteQueryOptions) => {
@@ -113,7 +113,7 @@ store.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\ReportController::store
-* @see app/Http/Controllers/ReportController.php:112
+* @see app/Http/Controllers/ReportController.php:123
 * @route '/reports'
 */
 store.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -123,7 +123,7 @@ store.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\ReportController::download
-* @see app/Http/Controllers/ReportController.php:152
+* @see app/Http/Controllers/ReportController.php:163
 * @route '/reports/{report}/download'
 */
 export const download = (args: { report: string | { report_number: string } } | [report: string | { report_number: string } ] | string | { report_number: string }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -138,7 +138,7 @@ download.definition = {
 
 /**
 * @see \App\Http\Controllers\ReportController::download
-* @see app/Http/Controllers/ReportController.php:152
+* @see app/Http/Controllers/ReportController.php:163
 * @route '/reports/{report}/download'
 */
 download.url = (args: { report: string | { report_number: string } } | [report: string | { report_number: string } ] | string | { report_number: string }, options?: RouteQueryOptions) => {
@@ -171,7 +171,7 @@ download.url = (args: { report: string | { report_number: string } } | [report: 
 
 /**
 * @see \App\Http\Controllers\ReportController::download
-* @see app/Http/Controllers/ReportController.php:152
+* @see app/Http/Controllers/ReportController.php:163
 * @route '/reports/{report}/download'
 */
 download.get = (args: { report: string | { report_number: string } } | [report: string | { report_number: string } ] | string | { report_number: string }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -181,7 +181,7 @@ download.get = (args: { report: string | { report_number: string } } | [report: 
 
 /**
 * @see \App\Http\Controllers\ReportController::download
-* @see app/Http/Controllers/ReportController.php:152
+* @see app/Http/Controllers/ReportController.php:163
 * @route '/reports/{report}/download'
 */
 download.head = (args: { report: string | { report_number: string } } | [report: string | { report_number: string } ] | string | { report_number: string }, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -191,7 +191,7 @@ download.head = (args: { report: string | { report_number: string } } | [report:
 
 /**
 * @see \App\Http\Controllers\ReportController::show
-* @see app/Http/Controllers/ReportController.php:129
+* @see app/Http/Controllers/ReportController.php:140
 * @route '/reports/{report}'
 */
 export const show = (args: { report: string | { report_number: string } } | [report: string | { report_number: string } ] | string | { report_number: string }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -206,7 +206,7 @@ show.definition = {
 
 /**
 * @see \App\Http\Controllers\ReportController::show
-* @see app/Http/Controllers/ReportController.php:129
+* @see app/Http/Controllers/ReportController.php:140
 * @route '/reports/{report}'
 */
 show.url = (args: { report: string | { report_number: string } } | [report: string | { report_number: string } ] | string | { report_number: string }, options?: RouteQueryOptions) => {
@@ -239,7 +239,7 @@ show.url = (args: { report: string | { report_number: string } } | [report: stri
 
 /**
 * @see \App\Http\Controllers\ReportController::show
-* @see app/Http/Controllers/ReportController.php:129
+* @see app/Http/Controllers/ReportController.php:140
 * @route '/reports/{report}'
 */
 show.get = (args: { report: string | { report_number: string } } | [report: string | { report_number: string } ] | string | { report_number: string }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -249,7 +249,7 @@ show.get = (args: { report: string | { report_number: string } } | [report: stri
 
 /**
 * @see \App\Http\Controllers\ReportController::show
-* @see app/Http/Controllers/ReportController.php:129
+* @see app/Http/Controllers/ReportController.php:140
 * @route '/reports/{report}'
 */
 show.head = (args: { report: string | { report_number: string } } | [report: string | { report_number: string } ] | string | { report_number: string }, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -259,7 +259,7 @@ show.head = (args: { report: string | { report_number: string } } | [report: str
 
 /**
 * @see \App\Http\Controllers\ReportController::finalize
-* @see app/Http/Controllers/ReportController.php:211
+* @see app/Http/Controllers/ReportController.php:222
 * @route '/reports/{report}/finalize'
 */
 export const finalize = (args: { report: string | { report_number: string } } | [report: string | { report_number: string } ] | string | { report_number: string }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -274,7 +274,7 @@ finalize.definition = {
 
 /**
 * @see \App\Http\Controllers\ReportController::finalize
-* @see app/Http/Controllers/ReportController.php:211
+* @see app/Http/Controllers/ReportController.php:222
 * @route '/reports/{report}/finalize'
 */
 finalize.url = (args: { report: string | { report_number: string } } | [report: string | { report_number: string } ] | string | { report_number: string }, options?: RouteQueryOptions) => {
@@ -307,7 +307,7 @@ finalize.url = (args: { report: string | { report_number: string } } | [report: 
 
 /**
 * @see \App\Http\Controllers\ReportController::finalize
-* @see app/Http/Controllers/ReportController.php:211
+* @see app/Http/Controllers/ReportController.php:222
 * @route '/reports/{report}/finalize'
 */
 finalize.post = (args: { report: string | { report_number: string } } | [report: string | { report_number: string } ] | string | { report_number: string }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({

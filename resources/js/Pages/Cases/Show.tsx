@@ -3,6 +3,7 @@ import EvidenceController from "@/actions/App/Http/Controllers/EvidenceControlle
 import ReportController from "@/actions/App/Http/Controllers/ReportController";
 import { CaseCustodyRegister } from "@/components/cases/CaseCustodyRegister";
 import { CaseEvidenceRegister } from "@/components/cases/CaseEvidenceRegister";
+import { CaseFindingsRegister } from "@/components/cases/CaseFindingsRegister";
 import { CaseOverview } from "@/components/cases/CaseOverview";
 import { CaseReportsRegister } from "@/components/cases/CaseReportsRegister";
 import { CaseTab, CaseTabs } from "@/components/cases/CaseTabs";
@@ -14,6 +15,7 @@ import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import {
     CaseCustody,
     CaseDetail,
+    CaseFindings,
     CaseIntegritySummary,
     CasePersonnel,
     CaseReport,
@@ -36,6 +38,8 @@ interface ShowProps {
     custody: CaseCustody;
     reports: CaseReport[];
     canCreateReport: boolean;
+    findings: CaseFindings;
+    canRecordFinding: boolean;
     initialTab: CaseTab;
 }
 
@@ -92,6 +96,8 @@ export default function Show({
     custody,
     reports,
     canCreateReport,
+    findings,
+    canRecordFinding,
     initialTab,
 }: ShowProps) {
     const [activeTab, setActiveTab] = useState<CaseTab>(initialTab);
@@ -256,6 +262,7 @@ export default function Show({
                     activeTab={activeTab}
                     evidenceCount={evidence.length}
                     reportsCount={reports.length}
+                    findingsCount={findings.items.length}
                     onChange={setActiveTab}
                 />
 
@@ -279,6 +286,12 @@ export default function Show({
                         reports={reports}
                         caseNumber={caseFile.case_number}
                         canCreateReport={canCreateReport}
+                    />
+                ) : activeTab === "findings" ? (
+                    <CaseFindingsRegister
+                        findings={findings}
+                        caseNumber={caseFile.case_number}
+                        canRecordFinding={canRecordFinding}
                     />
                 ) : (
                     <CaseEvidenceRegister

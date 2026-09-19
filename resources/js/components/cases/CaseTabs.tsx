@@ -1,14 +1,14 @@
-export type CaseTab = 'overview' | 'evidence' | 'custody' | 'reports';
+export type CaseTab = 'overview' | 'evidence' | 'custody' | 'reports' | 'findings';
 
 interface CaseTabsProps {
     activeTab: CaseTab;
     evidenceCount: number;
     reportsCount: number;
+    findingsCount: number;
     onChange: (tab: CaseTab) => void;
 }
 
 const FUTURE_TABS = [
-    { label: 'Findings & Analysis', icon: 'policy' },
     { label: 'Activity Audit', icon: 'fact_check' },
 ] as const;
 
@@ -22,7 +22,7 @@ function tabClassName(isActive: boolean): string {
     ].join(' ');
 }
 
-export function CaseTabs({ activeTab, evidenceCount, reportsCount, onChange }: CaseTabsProps) {
+export function CaseTabs({ activeTab, evidenceCount, reportsCount, findingsCount, onChange }: CaseTabsProps) {
     return (
         <nav
             aria-label="Case record sections"
@@ -72,6 +72,26 @@ export function CaseTabs({ activeTab, evidenceCount, reportsCount, onChange }: C
                         }`}
                     >
                         {evidenceCount}
+                    </span>
+                </button>
+
+                <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeTab === 'findings'}
+                    onClick={() => onChange('findings')}
+                    className={tabClassName(activeTab === 'findings')}
+                >
+                    <span aria-hidden="true" className="material-symbols-outlined text-[17px]">
+                        policy
+                    </span>
+                    Findings & Analysis
+                    <span
+                        className={`rounded px-1.5 py-0.5 text-[10px] ${
+                            activeTab === 'findings' ? 'bg-white/15 text-white' : 'bg-white text-slate-600'
+                        }`}
+                    >
+                        {findingsCount}
                     </span>
                 </button>
 

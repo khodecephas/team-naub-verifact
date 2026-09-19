@@ -61,7 +61,7 @@ export default function QuickIngest({
                     description="Secure a digital file immediately. Case assignment and descriptive details can be completed afterward."
                 />
 
-                <div className="mx-auto grid w-full max-w-5xl gap-5 lg:grid-cols-12">
+                <div className="mx-auto grid w-full gap-5 lg:grid-cols-12">
                     <Panel className="lg:col-span-8">
                         <PanelHeader
                             title="Evidence media"
