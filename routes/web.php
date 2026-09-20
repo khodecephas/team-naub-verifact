@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AuditController;
 use App\Http\Controllers\CaseController;
 use App\Http\Controllers\CaseIntegrityController;
 use App\Http\Controllers\CustodyRequestController;
@@ -24,6 +25,7 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 
 Route::middleware('auth')->group(function () {
     Route::get('/search', [SearchController::class, 'index'])->name('search.index');
+    Route::get('/audit', [AuditController::class, 'index'])->name('audit.index');
 
     /*
         Profile

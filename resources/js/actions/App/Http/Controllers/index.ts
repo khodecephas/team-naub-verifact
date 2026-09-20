@@ -1,5 +1,6 @@
 import DashboardController from './DashboardController'
 import SearchController from './SearchController'
+import AuditController from './AuditController'
 import ProfileController from './ProfileController'
 import CaseController from './CaseController'
 import CaseIntegrityController from './CaseIntegrityController'
@@ -15,6 +16,7 @@ import Auth from './Auth'
 const Controllers = {
     DashboardController: Object.assign(DashboardController, DashboardController),
     SearchController: Object.assign(SearchController, SearchController),
+    AuditController: Object.assign(AuditController, AuditController),
     ProfileController: Object.assign(ProfileController, ProfileController),
     CaseController: Object.assign(CaseController, CaseController),
     CaseIntegrityController: Object.assign(CaseIntegrityController, CaseIntegrityController),

@@ -16,6 +16,10 @@ const styles: Record<string, string> = {
     DRAFT: 'border-amber-200 bg-amber-50 text-amber-800',
     FINAL: 'border-emerald-200 bg-emerald-50 text-emerald-800',
     SUPERSEDED: 'border-slate-300 bg-slate-100 text-slate-600',
+    SUCCESS: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    HASH_MISMATCH: 'border-red-200 bg-red-50 text-red-800',
+    UNAUTHORIZED: 'border-red-200 bg-red-50 text-red-800',
+    ERROR: 'border-red-200 bg-red-50 text-red-800',
 };
 
 const icons: Record<string, string> = {
@@ -30,6 +34,10 @@ const icons: Record<string, string> = {
     DRAFT: 'edit_document',
     FINAL: 'verified',
     SUPERSEDED: 'history',
+    SUCCESS: 'verified',
+    HASH_MISMATCH: 'gpp_bad',
+    UNAUTHORIZED: 'block',
+    ERROR: 'error',
 };
 
 export function StatusBadge({ status, className }: { status: string; className?: string }) {

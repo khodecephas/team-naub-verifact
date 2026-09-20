@@ -1,4 +1,5 @@
 import AuthenticatedSessionController from "@/actions/App/Http/Controllers/Auth/AuthenticatedSessionController";
+import AuditController from "@/actions/App/Http/Controllers/AuditController";
 import CaseController from "@/actions/App/Http/Controllers/CaseController";
 import DashboardController from "@/actions/App/Http/Controllers/DashboardController";
 import EvidenceController from "@/actions/App/Http/Controllers/EvidenceController";
@@ -52,6 +53,11 @@ const navigationItems: NavigationItem[] = [
         label: "Offline",
         href: OfflineController.index().url,
         icon: "cloud_off",
+    },
+    {
+        label: "Audit",
+        href: AuditController.index().url,
+        icon: "history",
     },
 ];
 
