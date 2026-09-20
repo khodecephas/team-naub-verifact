@@ -59,7 +59,7 @@ export default function Create({ roles, rolePermissions }: CreateProps) {
                     description="Provision a new account and assign its role."
                 />
 
-                <form onSubmit={submit} className="grid max-w-4xl gap-4 lg:grid-cols-3">
+                <form onSubmit={submit} className="grid gap-4 lg:grid-cols-3">
                     <Panel className="lg:col-span-2">
                         <PanelHeader
                             title={
