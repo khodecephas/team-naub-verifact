@@ -15,6 +15,7 @@ use App\Http\Requests\RevokeEvidenceDerivativeRequest;
 use App\Http\Resources\EvidenceResource;
 use App\Models\CaseFile;
 use App\Models\Evidence;
+use App\Models\EvidenceActivityEvent;
 use App\Models\EvidenceDerivative;
 use App\Models\User;
 use App\Services\EvidenceCustodyService;
@@ -251,6 +252,12 @@ class EvidenceController extends Controller
                 ->latest('issued_at'),
         ]);
 
+        $activityEvents = EvidenceActivityEvent::query()
+            ->whereMorphedTo('subject', $evidence)
+            ->with('actor:id,name')
+            ->oldest('occurred_at')
+            ->get();
+
         $fileAvailable = $this->masterFileAvailable($evidence);
         $canCompleteIntake = Gate::allows('completeIntake', $evidence);
         $intakeCases = $canCompleteIntake
@@ -301,6 +308,13 @@ class EvidenceController extends Controller
                     && $item->requested_by === request()->user()->id,
             ]),
             'custodyChainVerified' => EvidenceCustodyService::verifyChain($evidence),
+            'activityEvents' => $activityEvents->map(fn (EvidenceActivityEvent $event) => [
+                'id' => $event->id,
+                'event_type' => $event->event_type,
+                'actor' => $event->actor?->name ?? 'System',
+                'payload' => $event->payload,
+                'occurred_at' => $event->occurred_at->toIso8601String(),
+            ]),
             'derivatives' => $evidence->derivatives->map(fn ($derivative) => [
                 'derivative_number' => $derivative->derivative_number,
                 'derivative_type' => $derivative->derivative_type->value,

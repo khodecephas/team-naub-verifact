@@ -32,6 +32,10 @@ class EvidenceResource extends JsonResource
             'sha256_baseline' => $this->sha256_baseline,
             'integrity_status' => $this->integrity_status,
             'registered_at' => $this->registered_at?->toIso8601String(),
+            'collection_source' => $this->collection_source,
+            'collected_at' => $this->collected_at?->toIso8601String(),
+            'collected_timezone' => $this->collected_timezone,
+            'client_sha256' => $this->client_sha256,
             'case' => $this->whenLoaded('case', fn () => $this->case ? [
                 'id' => $this->case->id,
                 'case_number' => $this->case->case_number,

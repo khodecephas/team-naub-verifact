@@ -4,6 +4,7 @@ import ReportController from "@/actions/App/Http/Controllers/ReportController";
 import { CaseCustodyRegister } from "@/components/cases/CaseCustodyRegister";
 import { CaseEvidenceRegister } from "@/components/cases/CaseEvidenceRegister";
 import { CaseFindingsRegister } from "@/components/cases/CaseFindingsRegister";
+import { CaseIntegrityDialog } from "@/components/cases/CaseIntegrityDialog";
 import { CaseOverview } from "@/components/cases/CaseOverview";
 import { CaseReportsRegister } from "@/components/cases/CaseReportsRegister";
 import { CaseTab, CaseTabs } from "@/components/cases/CaseTabs";
@@ -11,6 +12,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useNotificationDialog } from "@/components/notifications/NotificationDialogProvider";
+import { useCaseIntegrityCheck } from "@/hooks/use-case-integrity-check";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import {
     CaseCustody,
@@ -102,6 +104,7 @@ export default function Show({
 }: ShowProps) {
     const [activeTab, setActiveTab] = useState<CaseTab>(initialTab);
     const { confirm } = useNotificationDialog();
+    const integrityCheck = useCaseIntegrityCheck(caseFile.case_number);
 
     const archiveCase = async () => {
         const confirmed = await confirm({
@@ -302,6 +305,12 @@ export default function Show({
                     />
                 )}
             </div>
+
+            <CaseIntegrityDialog
+                state={integrityCheck.state}
+                result={integrityCheck.result}
+                onRerun={integrityCheck.rerun}
+            />
         </AuthenticatedLayout>
     );
 }

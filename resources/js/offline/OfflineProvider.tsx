@@ -1,27 +1,17 @@
-import {
-    checkSession,
-    fetchBootstrap,
-    SyncApiError,
-    syncEvidenceRecord,
-    syncPhysicalSourceRecord,
-} from "@/offline/api";
+import { useNotificationDialog } from "@/components/notifications/NotificationDialogProvider";
+import { checkEvidenceAssignments, checkSession, fetchBootstrap, SyncApiError, syncEvidenceRecord } from "@/offline/api";
 import {
     deleteEvidenceRecord,
     getAllEvidenceRecords,
-    getAllPhysicalSourceRecords,
     getBootstrapCache,
     putBootstrapCache,
     putEvidenceRecord,
-    putPhysicalSourceRecord,
 } from "@/offline/db";
 import { sha256OfBlob } from "@/offline/hash";
-import type { PageProps, User } from "@/types";
-import type {
-    OfflineBootstrapCache,
-    OfflineEvidenceRecord,
-    OfflinePhysicalSourceRecord,
-} from "@/types/offline";
-import { router } from "@inertiajs/react";
+import { useConnectivity } from "@/offline/useConnectivity";
+import type { PageProps } from "@/types";
+import type { OfflineBootstrapCache, OfflineEvidenceRecord } from "@/types/offline";
+import { usePage } from "@inertiajs/react";
 import {
     createContext,
     PropsWithChildren,
@@ -33,23 +23,8 @@ import {
 } from "react";
 
 interface NewOfflineEvidenceInput {
-    caseId: number;
-    caseNumber: string;
-    physicalSourceId: number | null;
-    physicalSourceOfflineId: string | null;
-    evidenceType: string;
-    title: string;
     description: string | null;
     file: File;
-}
-
-interface NewOfflinePhysicalSourceInput {
-    caseId: number;
-    caseNumber: string;
-    label: string;
-    sourceType: string;
-    description: string | null;
-    collectionLocation: string | null;
 }
 
 interface SyncSummary {
@@ -63,13 +38,11 @@ interface OfflineContextValue {
     isOnline: boolean;
     bootstrap: OfflineBootstrapCache | null;
     evidenceQueue: OfflineEvidenceRecord[];
-    physicalSourceQueue: OfflinePhysicalSourceRecord[];
     pendingCount: number;
     syncing: boolean;
     refreshBootstrap: () => Promise<void>;
     refreshQueues: () => Promise<void>;
     saveEvidenceOffline: (input: NewOfflineEvidenceInput) => Promise<OfflineEvidenceRecord>;
-    savePhysicalSourceOffline: (input: NewOfflinePhysicalSourceInput) => Promise<OfflinePhysicalSourceRecord>;
     syncAll: () => Promise<SyncSummary>;
     retrySync: (localId: string) => Promise<void>;
     removeLocalDraft: (localId: string) => Promise<void>;
@@ -81,23 +54,32 @@ function nowIso(): string {
     return new Date().toISOString();
 }
 
+/** A local-only display title derived from the filename — the server derives its own the same way. */
+function titleFromFilename(filename: string): string {
+    const withoutExtension = filename.replace(/\.[^./\\]+$/, "");
+
+    return withoutExtension.trim() || filename;
+}
+
+/**
+ * Mounted inside AuthenticatedLayout (never on guest pages), so `auth.user`
+ * is always present here. `usePage()` needs a component that is itself a
+ * descendant of Inertia's `<App>` — this provider qualifies because every
+ * page renders `<AuthenticatedLayout>{...}</AuthenticatedLayout>`, and
+ * this provider wraps that layout's children from inside it.
+ */
 export function OfflineProvider({ children }: PropsWithChildren) {
     const { auth } = usePage<PageProps>().props;
     const userId = auth.user.id;
 
-    const [isOnline, setIsOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
+    const isOnline = useConnectivity();
     const [bootstrap, setBootstrap] = useState<OfflineBootstrapCache | null>(null);
     const [evidenceQueue, setEvidenceQueue] = useState<OfflineEvidenceRecord[]>([]);
-    const [physicalSourceQueue, setPhysicalSourceQueue] = useState<OfflinePhysicalSourceRecord[]>([]);
     const [syncing, setSyncing] = useState(false);
 
     const refreshQueues = useCallback(async () => {
-        const [evidence, sources] = await Promise.all([
-            getAllEvidenceRecords(userId),
-            getAllPhysicalSourceRecords(userId),
-        ]);
+        const evidence = await getAllEvidenceRecords(userId);
         setEvidenceQueue(evidence.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
-        setPhysicalSourceQueue(sources);
     }, [userId]);
 
     const refreshBootstrap = useCallback(async () => {
@@ -121,18 +103,6 @@ export function OfflineProvider({ children }: PropsWithChildren) {
     }, [isOnline, userId]);
 
     useEffect(() => {
-        const handleOnline = () => setIsOnline(true);
-        const handleOffline = () => setIsOnline(false);
-        window.addEventListener("online", handleOnline);
-        window.addEventListener("offline", handleOffline);
-
-        return () => {
-            window.removeEventListener("online", handleOnline);
-            window.removeEventListener("offline", handleOffline);
-        };
-    }, []);
-
-    useEffect(() => {
         void refreshQueues();
     }, [refreshQueues]);
 
@@ -143,6 +113,52 @@ export function OfflineProvider({ children }: PropsWithChildren) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOnline, userId]);
 
+    /**
+     * Refreshes whether already-synced evidence has since been assigned to
+     * a case — the local queue never caches case assignment itself, only
+     * this one boolean, so "Assign case" can disable itself once intake is
+     * complete elsewhere. Best-effort: a failed check just leaves the
+     * button enabled until the next successful one.
+     */
+    const checkAssignments = useCallback(async () => {
+        if (!isOnline) {
+            return;
+        }
+
+        const evidence = await getAllEvidenceRecords(userId);
+        const unassigned = evidence.filter(
+            (item) => item.status === "SYNCED" && item.evidenceNumber !== null && !item.caseAssigned,
+        );
+
+        if (unassigned.length === 0) {
+            return;
+        }
+
+        try {
+            const assignments = await checkEvidenceAssignments(
+                unassigned.map((item) => item.evidenceNumber as string),
+            );
+            const newlyAssigned = unassigned.filter((item) => assignments[item.evidenceNumber as string]);
+
+            if (newlyAssigned.length === 0) {
+                return;
+            }
+
+            await Promise.all(
+                newlyAssigned.map((item) =>
+                    putEvidenceRecord({ ...item, caseAssigned: true, updatedAt: nowIso() }),
+                ),
+            );
+            await refreshQueues();
+        } catch {
+            // Ignore — see doc comment above.
+        }
+    }, [isOnline, refreshQueues, userId]);
+
+    useEffect(() => {
+        void checkAssignments();
+    }, [checkAssignments]);
+
     const saveEvidenceOffline = useCallback(
         async (input: NewOfflineEvidenceInput): Promise<OfflineEvidenceRecord> => {
             const localSha256 = await sha256OfBlob(input.file);
@@ -150,12 +166,7 @@ export function OfflineProvider({ children }: PropsWithChildren) {
             const record: OfflineEvidenceRecord = {
                 localId: crypto.randomUUID(),
                 ownerUserId: userId,
-                caseId: input.caseId,
-                caseNumber: input.caseNumber,
-                physicalSourceId: input.physicalSourceId,
-                physicalSourceOfflineId: input.physicalSourceOfflineId,
-                evidenceType: input.evidenceType,
-                title: input.title,
+                title: titleFromFilename(input.file.name),
                 description: input.description,
                 file: input.file,
                 filename: input.file.name,
@@ -170,6 +181,7 @@ export function OfflineProvider({ children }: PropsWithChildren) {
                 serverSha256: null,
                 evidenceNumber: null,
                 synchronizedAt: null,
+                caseAssigned: false,
                 createdAt: timestamp,
                 updatedAt: timestamp,
             };
@@ -182,33 +194,6 @@ export function OfflineProvider({ children }: PropsWithChildren) {
         [auth.user.id, auth.user.name, refreshQueues, userId],
     );
 
-    const savePhysicalSourceOffline = useCallback(
-        async (input: NewOfflinePhysicalSourceInput): Promise<OfflinePhysicalSourceRecord> => {
-            const timestamp = nowIso();
-            const record: OfflinePhysicalSourceRecord = {
-                localId: crypto.randomUUID(),
-                ownerUserId: userId,
-                caseId: input.caseId,
-                caseNumber: input.caseNumber,
-                label: input.label,
-                sourceType: input.sourceType,
-                description: input.description,
-                collectionLocation: input.collectionLocation,
-                status: "PENDING_SYNC",
-                syncError: null,
-                realId: null,
-                createdAt: timestamp,
-                updatedAt: timestamp,
-            };
-
-            await putPhysicalSourceRecord(record);
-            await refreshQueues();
-
-            return record;
-        },
-        [refreshQueues, userId],
-    );
-
     const removeLocalDraft = useCallback(
         async (localId: string) => {
             await deleteEvidenceRecord(localId);
@@ -217,68 +202,28 @@ export function OfflineProvider({ children }: PropsWithChildren) {
         [refreshQueues],
     );
 
-    const syncOnePhysicalSource = useCallback(async (record: OfflinePhysicalSourceRecord): Promise<number | null> => {
-        try {
-            const result = await syncPhysicalSourceRecord(record.caseNumber, {
-                offline_collection_id: record.localId,
-                label: record.label,
-                source_type: record.sourceType,
-                description: record.description,
-                collection_location: record.collectionLocation,
-            });
-
-            await putPhysicalSourceRecord({
-                ...record,
-                status: "SYNCED",
-                syncError: null,
-                realId: result.id,
-                updatedAt: nowIso(),
-            });
-
-            return result.id;
-        } catch (error) {
-            const message = error instanceof Error ? error.message : "Physical source sync failed.";
-            const requiresReview = error instanceof SyncApiError && error.status === 403;
-
-            await putPhysicalSourceRecord({
-                ...record,
-                status: requiresReview ? "REQUIRES_REVIEW" : "SYNC_FAILED",
-                syncError: message,
-                updatedAt: nowIso(),
-            });
-
-            return null;
-        }
-    }, []);
-
     const syncOneEvidenceRecord = useCallback(
-        async (record: OfflineEvidenceRecord, resolvedPhysicalSourceIds: Map<string, number>): Promise<"synced" | "review" | "failed"> => {
-            let physicalSourceId = record.physicalSourceId;
+        async (record: OfflineEvidenceRecord): Promise<"synced" | "review" | "failed"> => {
+            if (record.file === null) {
+                // Should be unreachable — the blob is only ever cleared once
+                // a record is SYNCED, and SYNCED records are never re-synced.
+                // Fail safely rather than sending a request with no file.
+                await putEvidenceRecord({
+                    ...record,
+                    status: "SYNC_FAILED",
+                    syncError: "The original file is no longer available on this device.",
+                    updatedAt: nowIso(),
+                });
 
-            if (physicalSourceId === null && record.physicalSourceOfflineId) {
-                physicalSourceId = resolvedPhysicalSourceIds.get(record.physicalSourceOfflineId) ?? null;
-
-                if (physicalSourceId === null) {
-                    await putEvidenceRecord({
-                        ...record,
-                        status: "SYNC_FAILED",
-                        syncError: "Its physical source has not synced yet. Sync Now again once that succeeds.",
-                        updatedAt: nowIso(),
-                    });
-
-                    return "failed";
-                }
+                return "failed";
             }
 
             await putEvidenceRecord({ ...record, status: "SYNCING", updatedAt: nowIso() });
 
             try {
-                const result = await syncEvidenceRecord(record.caseNumber, {
+                const result = await syncEvidenceRecord({
                     offline_collection_id: record.localId,
-                    physical_source_id: physicalSourceId,
-                    title: record.title,
                     description: record.description,
-                    evidence_type: record.evidenceType,
                     client_sha256: record.localSha256,
                     collected_at: record.collectedAt,
                     collected_timezone: record.collectedTimezone,
@@ -286,14 +231,20 @@ export function OfflineProvider({ children }: PropsWithChildren) {
                     filename: record.filename,
                 });
 
+                // The server has independently stored, hashed, compared,
+                // and committed the authoritative record — only now is it
+                // safe to free the on-device copy. Every other field
+                // (hashes, evidence number, timestamps) is kept for
+                // audit/UI; only the blob itself is discarded.
                 await putEvidenceRecord({
                     ...record,
-                    physicalSourceId,
+                    file: null,
                     status: "SYNCED",
                     syncError: null,
                     serverSha256: result.server_sha256,
                     evidenceNumber: result.evidence_number,
                     synchronizedAt: result.registered_at,
+                    caseAssigned: false,
                     updatedAt: nowIso(),
                 });
 
@@ -343,33 +294,14 @@ export function OfflineProvider({ children }: PropsWithChildren) {
                 throw error;
             }
 
-            const [pendingSources, pendingEvidence] = await Promise.all([
-                getAllPhysicalSourceRecords(userId),
-                getAllEvidenceRecords(userId),
-            ]);
-
-            const resolvedPhysicalSourceIds = new Map<string, number>();
-            for (const source of pendingSources) {
-                if (source.realId !== null) {
-                    resolvedPhysicalSourceIds.set(source.localId, source.realId);
-                    continue;
-                }
-                if (source.status === "SYNCED") {
-                    continue;
-                }
-
-                const realId = await syncOnePhysicalSource(source);
-                if (realId !== null) {
-                    resolvedPhysicalSourceIds.set(source.localId, realId);
-                }
-            }
+            const pendingEvidence = await getAllEvidenceRecords(userId);
 
             for (const record of pendingEvidence) {
                 if (record.status === "SYNCED") {
                     continue;
                 }
 
-                const outcome = await syncOneEvidenceRecord(record, resolvedPhysicalSourceIds);
+                const outcome = await syncOneEvidenceRecord(record);
                 if (outcome === "synced") summary.synced++;
                 if (outcome === "review") summary.requiresReview++;
                 if (outcome === "failed") summary.failed++;
@@ -378,9 +310,10 @@ export function OfflineProvider({ children }: PropsWithChildren) {
             return summary;
         } finally {
             await refreshQueues();
+            void checkAssignments();
             setSyncing(false);
         }
-    }, [isOnline, refreshQueues, syncOneEvidenceRecord, syncOnePhysicalSource, userId]);
+    }, [checkAssignments, isOnline, refreshQueues, syncOneEvidenceRecord, userId]);
 
     const retrySync = useCallback(
         async (localId: string) => {
@@ -392,14 +325,7 @@ export function OfflineProvider({ children }: PropsWithChildren) {
             setSyncing(true);
             try {
                 await checkSession();
-                const sources = await getAllPhysicalSourceRecords(userId);
-                const resolved = new Map<string, number>();
-                sources.forEach((source) => {
-                    if (source.realId !== null) {
-                        resolved.set(source.localId, source.realId);
-                    }
-                });
-                await syncOneEvidenceRecord(record, resolved);
+                await syncOneEvidenceRecord(record);
             } catch {
                 await putEvidenceRecord({
                     ...record,
@@ -412,7 +338,7 @@ export function OfflineProvider({ children }: PropsWithChildren) {
                 setSyncing(false);
             }
         },
-        [evidenceQueue, refreshQueues, syncOneEvidenceRecord, userId],
+        [evidenceQueue, refreshQueues, syncOneEvidenceRecord],
     );
 
     const pendingCount = useMemo(
@@ -420,18 +346,62 @@ export function OfflineProvider({ children }: PropsWithChildren) {
         [evidenceQueue],
     );
 
+    const hasUnsyncedRecords = useMemo(
+        () => evidenceQueue.some((item) => item.status === "PENDING_SYNC"),
+        [evidenceQueue],
+    );
+
+    const { notify } = useNotificationDialog();
+
+    /**
+     * Automatic sync when connectivity is present: fires whenever there is
+     * at least one record still awaiting its first attempt. Deliberately
+     * does not include SYNC_FAILED/REQUIRES_REVIEW here — those need an
+     * explicit Retry, or this would hammer the server retrying the same
+     * hash mismatch or authorization failure forever.
+     */
+    useEffect(() => {
+        if (!isOnline || !hasUnsyncedRecords || syncing) {
+            return;
+        }
+
+        void syncAll().then((summary) => {
+            if (summary.sessionExpired) {
+                notify({
+                    title: "Session expired",
+                    message: "Reconnected, but your session is no longer valid. Log in again, then return here to sync.",
+                    tone: "error",
+                });
+
+                return;
+            }
+
+            if (summary.synced + summary.requiresReview + summary.failed === 0) {
+                return;
+            }
+
+            notify({
+                title: "Automatic sync complete",
+                message: `${summary.synced} synced, ${summary.requiresReview} require review, ${summary.failed} failed.`,
+                tone: summary.failed > 0 || summary.requiresReview > 0 ? "warning" : "success",
+            });
+        });
+        // Re-run only when connectivity or the pending set changes — not on
+        // every `syncAll`/`notify` identity change, which would refire this
+        // on unrelated renders.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOnline, hasUnsyncedRecords]);
+
     const value = useMemo<OfflineContextValue>(
         () => ({
             isOnline,
             bootstrap,
             evidenceQueue,
-            physicalSourceQueue,
             pendingCount,
             syncing,
             refreshBootstrap,
             refreshQueues,
             saveEvidenceOffline,
-            savePhysicalSourceOffline,
             syncAll,
             retrySync,
             removeLocalDraft,
@@ -440,13 +410,11 @@ export function OfflineProvider({ children }: PropsWithChildren) {
             isOnline,
             bootstrap,
             evidenceQueue,
-            physicalSourceQueue,
             pendingCount,
             syncing,
             refreshBootstrap,
             refreshQueues,
             saveEvidenceOffline,
-            savePhysicalSourceOffline,
             syncAll,
             retrySync,
             removeLocalDraft,

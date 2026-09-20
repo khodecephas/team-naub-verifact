@@ -34,6 +34,10 @@ export interface Evidence {
     sha256_baseline: string;
     integrity_status: string;
     registered_at: string;
+    collection_source: string;
+    collected_at: string | null;
+    collected_timezone: string | null;
+    client_sha256: string | null;
     case?: EvidenceCaseSummary | null;
     physical_source?: EvidencePhysicalSourceSummary | null;
     registered_by?: EvidenceRegisteredBySummary;
@@ -153,6 +157,15 @@ export interface FileVerificationResult {
     comparison_filename: string;
     comparison_file_size_bytes: number;
     verified_at: string;
+}
+
+/** One entry from the evidence's hash-chained activity ledger (EvidenceActivityEventService). */
+export interface EvidenceActivityLogEntry {
+    id: number;
+    event_type: string;
+    actor: string;
+    payload: Record<string, unknown>;
+    occurred_at: string;
 }
 
 export interface PaginatedEvidence {

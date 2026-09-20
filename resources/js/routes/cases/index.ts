@@ -292,6 +292,64 @@ archive.post = (args: { caseFile: string | { case_number: string } } | [caseFile
     method: 'post',
 })
 
+/**
+* @see \App\Http\Controllers\CaseIntegrityController::integrityCheck
+* @see app/Http/Controllers/CaseIntegrityController.php:18
+* @route '/cases/{caseFile}/integrity-check'
+*/
+export const integrityCheck = (args: { caseFile: string | { case_number: string } } | [caseFile: string | { case_number: string } ] | string | { case_number: string }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: integrityCheck.url(args, options),
+    method: 'post',
+})
+
+integrityCheck.definition = {
+    methods: ["post"],
+    url: '/cases/{caseFile}/integrity-check',
+} satisfies RouteDefinition<["post"]>
+
+/**
+* @see \App\Http\Controllers\CaseIntegrityController::integrityCheck
+* @see app/Http/Controllers/CaseIntegrityController.php:18
+* @route '/cases/{caseFile}/integrity-check'
+*/
+integrityCheck.url = (args: { caseFile: string | { case_number: string } } | [caseFile: string | { case_number: string } ] | string | { case_number: string }, options?: RouteQueryOptions) => {
+    if (typeof args === 'string' || typeof args === 'number') {
+        args = { caseFile: args }
+    }
+
+    if (typeof args === 'object' && !Array.isArray(args) && 'case_number' in args) {
+        args = { caseFile: args.case_number }
+    }
+
+    if (Array.isArray(args)) {
+        args = {
+            caseFile: args[0],
+        }
+    }
+
+    args = applyUrlDefaults(args)
+
+    const parsedArgs = {
+        caseFile: typeof args.caseFile === 'object'
+        ? args.caseFile.case_number
+        : args.caseFile,
+    }
+
+    return integrityCheck.definition.url
+            .replace('{caseFile}', parsedArgs.caseFile.toString())
+            .replace(/\/+$/, '') + queryParams(options)
+}
+
+/**
+* @see \App\Http\Controllers\CaseIntegrityController::integrityCheck
+* @see app/Http/Controllers/CaseIntegrityController.php:18
+* @route '/cases/{caseFile}/integrity-check'
+*/
+integrityCheck.post = (args: { caseFile: string | { case_number: string } } | [caseFile: string | { case_number: string } ] | string | { case_number: string }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: integrityCheck.url(args, options),
+    method: 'post',
+})
+
 const cases = {
     index: Object.assign(index, index),
     export: Object.assign(exportMethod, exportMethod),
@@ -299,6 +357,7 @@ const cases = {
     store: Object.assign(store, store),
     show: Object.assign(show, show),
     archive: Object.assign(archive, archive),
+    integrityCheck: Object.assign(integrityCheck, integrityCheck),
     findings: Object.assign(findings, findings),
 }
 

@@ -6,7 +6,6 @@ use App\Enums\EvidenceType;
 use App\Enums\OfflineSyncOutcome;
 use App\Enums\PhysicalSourceType;
 use App\Http\Requests\StoreOfflineEvidenceRequest;
-use App\Http\Requests\StoreOfflinePhysicalSourceRequest;
 use App\Models\CaseFile;
 use App\Models\Evidence;
 use App\Services\OfflineSyncService;
@@ -43,10 +42,13 @@ class OfflineSyncController extends Controller
     }
 
     /**
-     * Minimal, field-collection-only data cached for offline use: the
-     * user's assigned cases they may register evidence into, each case's
-     * already-known physical sources, and the option lists the offline
-     * capture form needs. Master evidence content is never included here.
+     * Minimal reference data cached for offline use — this device's user
+     * identity (so the lock screen can offer an offline unlock) and the
+     * user's assigned cases for situational awareness. Evidence capture
+     * itself never requires a case: it follows Quick Ingest's "secure now,
+     * complete details later" path, so a case created after this device
+     * last had connectivity is never a blocker. Master evidence content is
+     * never included here.
      */
     public function bootstrap(Request $request): JsonResponse
     {
@@ -54,10 +56,7 @@ class OfflineSyncController extends Controller
 
         $cases = CaseFile::query()
             ->visibleTo($user)
-            ->with(['physicalSources:id,case_id,label,source_type'])
-            ->get(['id', 'case_number', 'title', 'status'])
-            ->filter(fn (CaseFile $case) => Gate::allows('register', [Evidence::class, $case]))
-            ->values();
+            ->get(['id', 'case_number', 'title', 'status']);
 
         return response()->json([
             'user' => ['id' => $user->id, 'name' => $user->name, 'email' => $user->email, 'role' => $user->role],
@@ -66,11 +65,6 @@ class OfflineSyncController extends Controller
                 'case_number' => $case->case_number,
                 'title' => $case->title,
                 'status' => $case->status,
-                'physical_sources' => $case->physicalSources->map(fn ($source) => [
-                    'id' => $source->id,
-                    'label' => $source->label,
-                    'source_type' => $source->source_type,
-                ])->all(),
             ]),
             'evidenceTypes' => EvidenceType::getValues(),
             'physicalSourceTypes' => PhysicalSourceType::getValues(),
@@ -79,42 +73,23 @@ class OfflineSyncController extends Controller
         ]);
     }
 
-    /** Synchronize one offline-registered physical source. Idempotent by offline_collection_id. */
-    public function syncPhysicalSource(StoreOfflinePhysicalSourceRequest $request, CaseFile $caseFile): JsonResponse
-    {
-        Gate::authorize('register', [Evidence::class, $caseFile]);
-
-        $physicalSource = OfflineSyncService::syncPhysicalSource(
-            $caseFile,
-            $request->string('offline_collection_id')->toString(),
-            $request->safe()->only(['label', 'source_type', 'description', 'collection_location']),
-        );
-
-        return response()->json([
-            'id' => $physicalSource->id,
-            'label' => $physicalSource->label,
-            'source_type' => $physicalSource->source_type,
-            'offline_collection_id' => $physicalSource->offline_collection_id,
-        ]);
-    }
-
     /**
-     * Synchronize one offline-collected evidence item. The server
-     * independently hashes the received file and compares it against the
-     * client's claimed hash before any evidence is registered — the client
-     * hash is never trusted as the baseline.
+     * Synchronize one offline-collected evidence item as an unassigned
+     * master record — the same authorization Quick Ingest uses (any
+     * registrant role, no case access check, because there is no case
+     * yet). The server independently hashes the received file and compares
+     * it against the client's claimed hash before any evidence is
+     * registered — the client hash is never trusted as the baseline. Case
+     * assignment, physical source, evidence type, and full description are
+     * completed afterward from the evidence record's own page.
      */
-    public function syncEvidence(StoreOfflineEvidenceRequest $request, CaseFile $caseFile): JsonResponse
+    public function syncEvidence(StoreOfflineEvidenceRequest $request): JsonResponse
     {
-        Gate::authorize('register', [Evidence::class, $caseFile]);
+        Gate::authorize('create', Evidence::class);
 
         $result = OfflineSyncService::syncEvidence(
-            $caseFile,
             $request->user(),
-            $request->safe()->only([
-                'offline_collection_id', 'physical_source_id', 'title', 'description',
-                'evidence_type', 'client_sha256', 'collected_at', 'collected_timezone',
-            ]),
+            $request->safe()->only(['offline_collection_id', 'description', 'client_sha256', 'collected_at', 'collected_timezone']),
             $request->file('file'),
         );
 
@@ -134,6 +109,28 @@ class OfflineSyncController extends Controller
             'server_sha256' => $evidence->sha256_baseline,
             'registered_at' => $evidence->registered_at->toIso8601String(),
             'collected_at' => $evidence->collected_at?->toIso8601String(),
+        ]);
+    }
+
+    /**
+     * Whether each given evidence number has since been assigned to a case
+     * — lets the offline queue disable "Assign case" once intake has
+     * already been completed for a synced record, without caching case
+     * assignment itself locally.
+     */
+    public function evidenceStatus(Request $request): JsonResponse
+    {
+        $numbers = $request->array('evidence_numbers');
+
+        $evidence = Evidence::query()
+            ->visibleTo($request->user())
+            ->whereIn('evidence_number', $numbers)
+            ->get(['evidence_number', 'case_id']);
+
+        return response()->json([
+            'assignments' => $evidence->mapWithKeys(fn (Evidence $item) => [
+                $item->evidence_number => $item->case_id !== null,
+            ]),
         ]);
     }
 }

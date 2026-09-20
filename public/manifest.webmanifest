@@ -1,0 +1,17 @@
+{
+    "name": "VeriFact — Digital Evidence Integrity System",
+    "short_name": "VeriFact",
+    "description": "Secure digital evidence management, chain of custody, and offline field collection.",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "background_color": "#0a1220",
+    "theme_color": "#0b1f35",
+    "icons": [
+        {
+            "src": "/favicon.ico",
+            "sizes": "48x48",
+            "type": "image/x-icon"
+        }
+    ]
+}

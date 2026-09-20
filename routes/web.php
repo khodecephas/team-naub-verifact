@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CaseController;
+use App\Http\Controllers\CaseIntegrityController;
 use App\Http\Controllers\CustodyRequestController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EvidenceController;
@@ -11,18 +12,11 @@ use App\Http\Controllers\OfflineSyncController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SearchController;
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
-});
+/** The secure landing / lock screen — VeriFact's entry point, not a marketing page. */
+Route::get('/', fn () => Inertia::render('Welcome'))->name('landing');
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
@@ -51,6 +45,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/cases/{caseFile}', 'show')->name('cases.show');
         Route::post('/cases/{caseFile}/archive', 'archive')->name('cases.archive');
     });
+
+    Route::post('/cases/{caseFile}/integrity-check', [CaseIntegrityController::class, 'verify'])
+        ->name('cases.integrity-check');
 
     Route::controller(FindingController::class)->group(function () {
         Route::get('/cases/{caseFile}/findings/create', 'create')->name('cases.findings.create');
@@ -124,8 +121,8 @@ Route::middleware('auth')->group(function () {
     Route::controller(OfflineSyncController::class)->prefix('offline-sync')->name('offline-sync.')->group(function () {
         Route::get('/session', 'session')->name('session');
         Route::get('/bootstrap', 'bootstrap')->name('bootstrap');
-        Route::post('/cases/{caseFile}/physical-sources', 'syncPhysicalSource')->name('physical-sources.store');
-        Route::post('/cases/{caseFile}/evidence', 'syncEvidence')->name('evidence.store');
+        Route::post('/evidence', 'syncEvidence')->name('evidence.store');
+        Route::get('/evidence-status', 'evidenceStatus')->name('evidence.status');
     });
 });
 

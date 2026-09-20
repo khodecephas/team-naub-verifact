@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, applyUrlDefaults } from './../../../wayfinder'
 /**
 * @see \App\Http\Controllers\EvidenceController::view
-* @see app/Http/Controllers/EvidenceController.php:385
+* @see app/Http/Controllers/EvidenceController.php:399
 * @route '/evidence/{evidence}/file'
 */
 export const view = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -16,7 +16,7 @@ view.definition = {
 
 /**
 * @see \App\Http\Controllers\EvidenceController::view
-* @see app/Http/Controllers/EvidenceController.php:385
+* @see app/Http/Controllers/EvidenceController.php:399
 * @route '/evidence/{evidence}/file'
 */
 view.url = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions) => {
@@ -49,7 +49,7 @@ view.url = (args: { evidence: string | { evidence_number: string } } | [evidence
 
 /**
 * @see \App\Http\Controllers\EvidenceController::view
-* @see app/Http/Controllers/EvidenceController.php:385
+* @see app/Http/Controllers/EvidenceController.php:399
 * @route '/evidence/{evidence}/file'
 */
 view.get = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -59,7 +59,7 @@ view.get = (args: { evidence: string | { evidence_number: string } } | [evidence
 
 /**
 * @see \App\Http\Controllers\EvidenceController::view
-* @see app/Http/Controllers/EvidenceController.php:385
+* @see app/Http/Controllers/EvidenceController.php:399
 * @route '/evidence/{evidence}/file'
 */
 view.head = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions): RouteDefinition<'head'> => ({

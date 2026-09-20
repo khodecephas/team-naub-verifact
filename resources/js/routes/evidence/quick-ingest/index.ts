@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition } from './../../../wayfinder'
 /**
 * @see \App\Http\Controllers\EvidenceController::create
-* @see app/Http/Controllers/EvidenceController.php:161
+* @see app/Http/Controllers/EvidenceController.php:162
 * @route '/evidence/quick-ingest'
 */
 export const create = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -16,7 +16,7 @@ create.definition = {
 
 /**
 * @see \App\Http\Controllers\EvidenceController::create
-* @see app/Http/Controllers/EvidenceController.php:161
+* @see app/Http/Controllers/EvidenceController.php:162
 * @route '/evidence/quick-ingest'
 */
 create.url = (options?: RouteQueryOptions) => {
@@ -25,7 +25,7 @@ create.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\EvidenceController::create
-* @see app/Http/Controllers/EvidenceController.php:161
+* @see app/Http/Controllers/EvidenceController.php:162
 * @route '/evidence/quick-ingest'
 */
 create.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -35,7 +35,7 @@ create.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\EvidenceController::create
-* @see app/Http/Controllers/EvidenceController.php:161
+* @see app/Http/Controllers/EvidenceController.php:162
 * @route '/evidence/quick-ingest'
 */
 create.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -45,7 +45,7 @@ create.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
 /**
 * @see \App\Http\Controllers\EvidenceController::store
-* @see app/Http/Controllers/EvidenceController.php:170
+* @see app/Http/Controllers/EvidenceController.php:171
 * @route '/evidence/quick-ingest'
 */
 export const store = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -60,7 +60,7 @@ store.definition = {
 
 /**
 * @see \App\Http\Controllers\EvidenceController::store
-* @see app/Http/Controllers/EvidenceController.php:170
+* @see app/Http/Controllers/EvidenceController.php:171
 * @route '/evidence/quick-ingest'
 */
 store.url = (options?: RouteQueryOptions) => {
@@ -69,7 +69,7 @@ store.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\EvidenceController::store
-* @see app/Http/Controllers/EvidenceController.php:170
+* @see app/Http/Controllers/EvidenceController.php:171
 * @route '/evidence/quick-ingest'
 */
 store.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({

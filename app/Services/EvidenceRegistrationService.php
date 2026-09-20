@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\EvidenceActivityType;
 use App\Enums\EvidenceType;
 use App\Enums\IdentifierScope;
 use App\Enums\IntegrityStatus;
@@ -106,6 +107,18 @@ class EvidenceRegistrationService
                 ]);
 
                 EvidenceCustodyService::recordInitialCustody($evidence, $registeredBy);
+
+                EvidenceActivityEventService::append(
+                    $evidence,
+                    EvidenceActivityType::EVIDENCE_REGISTERED,
+                    $registeredBy,
+                    [
+                        'case_number' => $case?->case_number,
+                        'sha256_baseline' => $sourceHash,
+                        'file_size_bytes' => $file->getSize(),
+                    ],
+                    $evidence->registered_at,
+                );
 
                 return $evidence;
             });

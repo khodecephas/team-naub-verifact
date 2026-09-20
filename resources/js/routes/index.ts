@@ -1,5 +1,45 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition } from './../wayfinder'
 /**
+* @see routes/web.php:19
+* @route '/'
+*/
+export const landing = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: landing.url(options),
+    method: 'get',
+})
+
+landing.definition = {
+    methods: ["get","head"],
+    url: '/',
+} satisfies RouteDefinition<["get","head"]>
+
+/**
+* @see routes/web.php:19
+* @route '/'
+*/
+landing.url = (options?: RouteQueryOptions) => {
+    return landing.definition.url + queryParams(options)
+}
+
+/**
+* @see routes/web.php:19
+* @route '/'
+*/
+landing.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: landing.url(options),
+    method: 'get',
+})
+
+/**
+* @see routes/web.php:19
+* @route '/'
+*/
+landing.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
+    url: landing.url(options),
+    method: 'head',
+})
+
+/**
 * @see \App\Http\Controllers\DashboardController::dashboard
 * @see app/Http/Controllers/DashboardController.php:24
 * @route '/dashboard'

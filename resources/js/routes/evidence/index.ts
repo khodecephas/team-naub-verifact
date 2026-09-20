@@ -6,7 +6,7 @@ import derivatives from './derivatives'
 import custodyTransfers from './custody-transfers'
 /**
 * @see \App\Http\Controllers\EvidenceController::index
-* @see app/Http/Controllers/EvidenceController.php:45
+* @see app/Http/Controllers/EvidenceController.php:46
 * @route '/evidence'
 */
 export const index = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -21,7 +21,7 @@ index.definition = {
 
 /**
 * @see \App\Http\Controllers\EvidenceController::index
-* @see app/Http/Controllers/EvidenceController.php:45
+* @see app/Http/Controllers/EvidenceController.php:46
 * @route '/evidence'
 */
 index.url = (options?: RouteQueryOptions) => {
@@ -30,7 +30,7 @@ index.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\EvidenceController::index
-* @see app/Http/Controllers/EvidenceController.php:45
+* @see app/Http/Controllers/EvidenceController.php:46
 * @route '/evidence'
 */
 index.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -40,7 +40,7 @@ index.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\EvidenceController::index
-* @see app/Http/Controllers/EvidenceController.php:45
+* @see app/Http/Controllers/EvidenceController.php:46
 * @route '/evidence'
 */
 index.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -50,7 +50,7 @@ index.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
 /**
 * @see \App\Http\Controllers\EvidenceController::exportMethod
-* @see app/Http/Controllers/EvidenceController.php:86
+* @see app/Http/Controllers/EvidenceController.php:87
 * @route '/evidence-export.csv'
 */
 export const exportMethod = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -65,7 +65,7 @@ exportMethod.definition = {
 
 /**
 * @see \App\Http\Controllers\EvidenceController::exportMethod
-* @see app/Http/Controllers/EvidenceController.php:86
+* @see app/Http/Controllers/EvidenceController.php:87
 * @route '/evidence-export.csv'
 */
 exportMethod.url = (options?: RouteQueryOptions) => {
@@ -74,7 +74,7 @@ exportMethod.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\EvidenceController::exportMethod
-* @see app/Http/Controllers/EvidenceController.php:86
+* @see app/Http/Controllers/EvidenceController.php:87
 * @route '/evidence-export.csv'
 */
 exportMethod.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -84,7 +84,7 @@ exportMethod.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\EvidenceController::exportMethod
-* @see app/Http/Controllers/EvidenceController.php:86
+* @see app/Http/Controllers/EvidenceController.php:87
 * @route '/evidence-export.csv'
 */
 exportMethod.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -94,7 +94,7 @@ exportMethod.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
 /**
 * @see \App\Http\Controllers\EvidenceController::batchVerify
-* @see app/Http/Controllers/EvidenceController.php:126
+* @see app/Http/Controllers/EvidenceController.php:127
 * @route '/evidence/batch-verify'
 */
 export const batchVerify = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -109,7 +109,7 @@ batchVerify.definition = {
 
 /**
 * @see \App\Http\Controllers\EvidenceController::batchVerify
-* @see app/Http/Controllers/EvidenceController.php:126
+* @see app/Http/Controllers/EvidenceController.php:127
 * @route '/evidence/batch-verify'
 */
 batchVerify.url = (options?: RouteQueryOptions) => {
@@ -118,7 +118,7 @@ batchVerify.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\EvidenceController::batchVerify
-* @see app/Http/Controllers/EvidenceController.php:126
+* @see app/Http/Controllers/EvidenceController.php:127
 * @route '/evidence/batch-verify'
 */
 batchVerify.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -128,7 +128,7 @@ batchVerify.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\EvidenceController::create
-* @see app/Http/Controllers/EvidenceController.php:187
+* @see app/Http/Controllers/EvidenceController.php:188
 * @route '/cases/{caseFile}/evidence/create'
 */
 export const create = (args: { caseFile: string | { case_number: string } } | [caseFile: string | { case_number: string } ] | string | { case_number: string }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -143,7 +143,7 @@ create.definition = {
 
 /**
 * @see \App\Http\Controllers\EvidenceController::create
-* @see app/Http/Controllers/EvidenceController.php:187
+* @see app/Http/Controllers/EvidenceController.php:188
 * @route '/cases/{caseFile}/evidence/create'
 */
 create.url = (args: { caseFile: string | { case_number: string } } | [caseFile: string | { case_number: string } ] | string | { case_number: string }, options?: RouteQueryOptions) => {
@@ -176,7 +176,7 @@ create.url = (args: { caseFile: string | { case_number: string } } | [caseFile: 
 
 /**
 * @see \App\Http\Controllers\EvidenceController::create
-* @see app/Http/Controllers/EvidenceController.php:187
+* @see app/Http/Controllers/EvidenceController.php:188
 * @route '/cases/{caseFile}/evidence/create'
 */
 create.get = (args: { caseFile: string | { case_number: string } } | [caseFile: string | { case_number: string } ] | string | { case_number: string }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -186,7 +186,7 @@ create.get = (args: { caseFile: string | { case_number: string } } | [caseFile: 
 
 /**
 * @see \App\Http\Controllers\EvidenceController::create
-* @see app/Http/Controllers/EvidenceController.php:187
+* @see app/Http/Controllers/EvidenceController.php:188
 * @route '/cases/{caseFile}/evidence/create'
 */
 create.head = (args: { caseFile: string | { case_number: string } } | [caseFile: string | { case_number: string } ] | string | { case_number: string }, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -196,7 +196,7 @@ create.head = (args: { caseFile: string | { case_number: string } } | [caseFile:
 
 /**
 * @see \App\Http\Controllers\EvidenceController::store
-* @see app/Http/Controllers/EvidenceController.php:208
+* @see app/Http/Controllers/EvidenceController.php:209
 * @route '/cases/{caseFile}/evidence'
 */
 export const store = (args: { caseFile: string | { case_number: string } } | [caseFile: string | { case_number: string } ] | string | { case_number: string }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -211,7 +211,7 @@ store.definition = {
 
 /**
 * @see \App\Http\Controllers\EvidenceController::store
-* @see app/Http/Controllers/EvidenceController.php:208
+* @see app/Http/Controllers/EvidenceController.php:209
 * @route '/cases/{caseFile}/evidence'
 */
 store.url = (args: { caseFile: string | { case_number: string } } | [caseFile: string | { case_number: string } ] | string | { case_number: string }, options?: RouteQueryOptions) => {
@@ -244,7 +244,7 @@ store.url = (args: { caseFile: string | { case_number: string } } | [caseFile: s
 
 /**
 * @see \App\Http\Controllers\EvidenceController::store
-* @see app/Http/Controllers/EvidenceController.php:208
+* @see app/Http/Controllers/EvidenceController.php:209
 * @route '/cases/{caseFile}/evidence'
 */
 store.post = (args: { caseFile: string | { case_number: string } } | [caseFile: string | { case_number: string } ] | string | { case_number: string }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -254,7 +254,7 @@ store.post = (args: { caseFile: string | { case_number: string } } | [caseFile: 
 
 /**
 * @see \App\Http\Controllers\EvidenceController::verify
-* @see app/Http/Controllers/EvidenceController.php:400
+* @see app/Http/Controllers/EvidenceController.php:414
 * @route '/evidence/{evidence}/verify'
 */
 export const verify = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -269,7 +269,7 @@ verify.definition = {
 
 /**
 * @see \App\Http\Controllers\EvidenceController::verify
-* @see app/Http/Controllers/EvidenceController.php:400
+* @see app/Http/Controllers/EvidenceController.php:414
 * @route '/evidence/{evidence}/verify'
 */
 verify.url = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions) => {
@@ -302,7 +302,7 @@ verify.url = (args: { evidence: string | { evidence_number: string } } | [eviden
 
 /**
 * @see \App\Http\Controllers\EvidenceController::verify
-* @see app/Http/Controllers/EvidenceController.php:400
+* @see app/Http/Controllers/EvidenceController.php:414
 * @route '/evidence/{evidence}/verify'
 */
 verify.post = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -312,7 +312,7 @@ verify.post = (args: { evidence: string | { evidence_number: string } } | [evide
 
 /**
 * @see \App\Http\Controllers\EvidenceController::show
-* @see app/Http/Controllers/EvidenceController.php:227
+* @see app/Http/Controllers/EvidenceController.php:228
 * @route '/evidence/{evidence}'
 */
 export const show = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -327,7 +327,7 @@ show.definition = {
 
 /**
 * @see \App\Http\Controllers\EvidenceController::show
-* @see app/Http/Controllers/EvidenceController.php:227
+* @see app/Http/Controllers/EvidenceController.php:228
 * @route '/evidence/{evidence}'
 */
 show.url = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions) => {
@@ -360,7 +360,7 @@ show.url = (args: { evidence: string | { evidence_number: string } } | [evidence
 
 /**
 * @see \App\Http\Controllers\EvidenceController::show
-* @see app/Http/Controllers/EvidenceController.php:227
+* @see app/Http/Controllers/EvidenceController.php:228
 * @route '/evidence/{evidence}'
 */
 show.get = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -370,7 +370,7 @@ show.get = (args: { evidence: string | { evidence_number: string } } | [evidence
 
 /**
 * @see \App\Http\Controllers\EvidenceController::show
-* @see app/Http/Controllers/EvidenceController.php:227
+* @see app/Http/Controllers/EvidenceController.php:228
 * @route '/evidence/{evidence}'
 */
 show.head = (args: { evidence: string | { evidence_number: string } } | [evidence: string | { evidence_number: string } ] | string | { evidence_number: string }, options?: RouteQueryOptions): RouteDefinition<'head'> => ({

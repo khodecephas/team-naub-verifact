@@ -2,6 +2,7 @@ import DashboardController from './DashboardController'
 import SearchController from './SearchController'
 import ProfileController from './ProfileController'
 import CaseController from './CaseController'
+import CaseIntegrityController from './CaseIntegrityController'
 import FindingController from './FindingController'
 import EvidenceController from './EvidenceController'
 import EvidenceVerificationComparisonController from './EvidenceVerificationComparisonController'
@@ -16,6 +17,7 @@ const Controllers = {
     SearchController: Object.assign(SearchController, SearchController),
     ProfileController: Object.assign(ProfileController, ProfileController),
     CaseController: Object.assign(CaseController, CaseController),
+    CaseIntegrityController: Object.assign(CaseIntegrityController, CaseIntegrityController),
     FindingController: Object.assign(FindingController, FindingController),
     EvidenceController: Object.assign(EvidenceController, EvidenceController),
     EvidenceVerificationComparisonController: Object.assign(EvidenceVerificationComparisonController, EvidenceVerificationComparisonController),

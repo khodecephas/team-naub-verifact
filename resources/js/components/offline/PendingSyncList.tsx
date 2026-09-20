@@ -1,3 +1,4 @@
+import EvidenceController from "@/actions/App/Http/Controllers/EvidenceController";
 import { SyncStatusBadge } from "@/components/offline/SyncStatusBadge";
 import { useNotificationDialog } from "@/components/notifications/NotificationDialogProvider";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import {
 import { formatBytes } from "@/lib/utils";
 import { useOffline } from "@/offline/OfflineProvider";
 import type { OfflineEvidenceRecord } from "@/types/offline";
+import { Link } from "@inertiajs/react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useState } from "react";
 
@@ -97,11 +99,6 @@ export function PendingSyncList() {
             ),
         },
         {
-            id: "case",
-            header: "Case",
-            cell: ({ row }) => <span className="font-mono text-xs text-slate-700">{row.original.caseNumber}</span>,
-        },
-        {
             id: "evidence",
             header: "Evidence",
             cell: ({ row }) => (
@@ -109,10 +106,17 @@ export function PendingSyncList() {
                     <p className="text-sm font-semibold text-slate-800">{row.original.title}</p>
                     <p className="text-xs text-slate-500">{row.original.filename}</p>
                     {row.original.evidenceNumber ? (
-                        <p className="mt-1 font-mono text-[11px] font-bold text-emerald-700">
-                            {row.original.evidenceNumber}
-                        </p>
-                    ) : null}
+                        <>
+                            <p className="mt-1 font-mono text-[11px] font-bold text-emerald-700">
+                                {row.original.evidenceNumber}
+                            </p>
+                            <p className="text-[11px] text-slate-400">
+                                {row.original.caseAssigned ? "Assigned to a case" : "Not yet assigned to a case"}
+                            </p>
+                        </>
+                    ) : (
+                        <p className="mt-1 text-[11px] text-slate-400">Not yet synchronized</p>
+                    )}
                 </div>
             ),
         },
@@ -152,11 +156,21 @@ export function PendingSyncList() {
             header: "Actions",
             cell: ({ row }) => (
                 <div className="flex flex-wrap justify-end gap-1.5">
-                    {row.original.status !== "SYNCED" && (
+                    {row.original.status === "SYNCED" && row.original.evidenceNumber ? (
+                        row.original.caseAssigned ? (
+                            <Button size="sm" disabled title="Already assigned to a case">
+                                Case assigned
+                            </Button>
+                        ) : (
+                            <Button size="sm" asChild>
+                                <Link href={EvidenceController.show(row.original.evidenceNumber)}>Assign case</Link>
+                            </Button>
+                        )
+                    ) : row.original.status !== "SYNCED" ? (
                         <Button size="sm" variant="outline" onClick={() => void retrySync(row.original.localId)}>
                             Retry
                         </Button>
-                    )}
+                    ) : null}
                     <Button size="sm" variant="ghost" onClick={() => setViewing(row.original)}>
                         View
                     </Button>
@@ -184,7 +198,7 @@ export function PendingSyncList() {
                 columns={columns}
                 data={evidenceQueue}
                 searchText="Search offline evidence…"
-                searchAccessor={(item) => `${item.localId} ${item.caseNumber} ${item.title} ${item.filename}`}
+                searchAccessor={(item) => `${item.localId} ${item.title} ${item.filename} ${item.evidenceNumber ?? ""}`}
                 getRowId={(item) => item.localId}
                 emptyMessage="No evidence has been collected offline on this device."
             />
@@ -199,9 +213,13 @@ export function PendingSyncList() {
                         <div className="grid gap-4 p-5 text-sm">
                             <div className="grid gap-3 sm:grid-cols-2">
                                 <Detail label="Offline ID" value={viewing.localId} mono />
-                                <Detail label="Case" value={viewing.caseNumber} mono />
-                                <Detail label="Evidence type" value={viewing.evidenceType} />
                                 <Detail label="Collected by" value={viewing.collectedBy.name} />
+                                {viewing.evidenceNumber ? (
+                                    <Detail label="Evidence number" value={viewing.evidenceNumber} mono />
+                                ) : null}
+                                {viewing.description ? (
+                                    <Detail label="Field notes" value={viewing.description} />
+                                ) : null}
                             </div>
                             <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
                                 <p className="text-xs font-semibold text-slate-700">

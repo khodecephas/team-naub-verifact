@@ -1,8 +1,11 @@
 import CaseController from "@/actions/App/Http/Controllers/CaseController";
 import EvidenceController from "@/actions/App/Http/Controllers/EvidenceController";
 import { EvidenceCustodySection } from "@/components/custody/EvidenceCustodySection";
+import { EvidenceActivityPanel } from "@/components/evidence/EvidenceActivityPanel";
+import { EvidenceAutoVerifyDialog } from "@/components/evidence/EvidenceAutoVerifyDialog";
 import { EvidenceIntakeCompletion } from "@/components/evidence/EvidenceIntakeCompletion";
 import { EvidenceIntegrityPanel } from "@/components/evidence/EvidenceIntegrityPanel";
+import { EvidenceTab, EvidenceTabs } from "@/components/evidence/EvidenceTabs";
 import { EvidenceWorkingCopies } from "@/components/evidence/EvidenceWorkingCopies";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +16,7 @@ import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { formatBytes } from "@/lib/utils";
 import {
     Evidence,
+    EvidenceActivityLogEntry,
     EvidenceCustodyEvent,
     EvidenceCustodyRequest,
     EvidenceDerivative,
@@ -22,7 +26,7 @@ import {
     EvidenceVerification,
 } from "@/types/evidence";
 import { Head, Link, router } from "@inertiajs/react";
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 
 interface ShowProps {
     evidence: Evidence;
@@ -30,6 +34,7 @@ interface ShowProps {
     custodyEvents: EvidenceCustodyEvent[];
     custodyRequests: EvidenceCustodyRequest[];
     custodyChainVerified: boolean;
+    activityEvents: EvidenceActivityLogEntry[];
     derivatives: EvidenceDerivative[];
     eligibleCustodians: EvidencePersonSummary[];
     eligibleDerivativeRecipients: EvidencePersonSummary[];
@@ -77,6 +82,7 @@ export default function Show({
     custodyEvents,
     custodyRequests,
     custodyChainVerified,
+    activityEvents,
     derivatives,
     eligibleCustodians,
     eligibleDerivativeRecipients,
@@ -86,7 +92,10 @@ export default function Show({
     permissions,
 }: ShowProps) {
     const [verifying, setVerifying] = useState(false);
+    const [activeTab, setActiveTab] = useState<EvidenceTab>("custody");
     const [copyDialogOpen, setCopyDialogOpen] = useState(false);
+    const [autoVerifyDialogOpen, setAutoVerifyDialogOpen] = useState(false);
+    const hasAutoVerified = useRef(false);
 
     const verifyIntegrity = () => {
         router.post(
@@ -99,6 +108,23 @@ export default function Show({
             },
         );
     };
+
+    // Automatically re-verify integrity whenever this record is opened —
+    // the same check "Verify integrity" triggers manually, just run on
+    // mount. Only for users authorised to verify (permissions.verify
+    // already accounts for role and file availability); guarded by a ref
+    // so the reload this triggers (which refreshes `verifications` but not
+    // `evidence.evidence_number`) never causes a second automatic check.
+    useEffect(() => {
+        if (hasAutoVerified.current || !permissions.verify) {
+            return;
+        }
+
+        hasAutoVerified.current = true;
+        setAutoVerifyDialogOpen(true);
+        verifyIntegrity();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [evidence.evidence_number, permissions.verify]);
 
     return (
         <AuthenticatedLayout>
@@ -268,7 +294,14 @@ export default function Show({
                             canVerify={permissions.verify}
                         />
 
-                        <div id="custody" className="scroll-mt-24">
+                        <EvidenceTabs
+                            activeTab={activeTab}
+                            copiesCount={derivatives.length}
+                            activityCount={activityEvents.length}
+                            onChange={setActiveTab}
+                        />
+
+                        {activeTab === "custody" ? (
                             <EvidenceCustodySection
                                 evidence={evidence}
                                 events={custodyEvents}
@@ -283,17 +316,19 @@ export default function Show({
                                 }
                                 chainVerified={custodyChainVerified}
                             />
-                        </div>
-
-                        <EvidenceWorkingCopies
-                            evidence={evidence}
-                            derivatives={derivatives}
-                            recipients={eligibleDerivativeRecipients}
-                            retention={workingCopyRetention}
-                            canIssue={permissions.issueWorkingCopy}
-                            dialogOpen={copyDialogOpen}
-                            onDialogOpenChange={setCopyDialogOpen}
-                        />
+                        ) : activeTab === "copies" ? (
+                            <EvidenceWorkingCopies
+                                evidence={evidence}
+                                derivatives={derivatives}
+                                recipients={eligibleDerivativeRecipients}
+                                retention={workingCopyRetention}
+                                canIssue={permissions.issueWorkingCopy}
+                                dialogOpen={copyDialogOpen}
+                                onDialogOpenChange={setCopyDialogOpen}
+                            />
+                        ) : (
+                            <EvidenceActivityPanel evidence={evidence} events={activityEvents} />
+                        )}
                     </div>
 
                     <aside className="flex flex-col gap-5 xl:col-span-4">
@@ -385,6 +420,14 @@ export default function Show({
                     </aside>
                 </div>
             </div>
+
+            <EvidenceAutoVerifyDialog
+                open={autoVerifyDialogOpen}
+                verifying={verifying}
+                evidenceNumber={evidence.evidence_number}
+                latestVerification={verifications[0]}
+                onClose={() => setAutoVerifyDialogOpen(false)}
+            />
         </AuthenticatedLayout>
     );
 }

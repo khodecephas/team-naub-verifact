@@ -49,23 +49,14 @@ export async function fetchBootstrap(): Promise<Omit<OfflineBootstrapCache, "own
     return request(OfflineSyncController.bootstrap().url, { method: "GET" });
 }
 
-export async function syncPhysicalSourceRecord(
-    caseNumber: string,
-    data: { offline_collection_id: string; label: string; source_type: string; description?: string | null; collection_location?: string | null },
-): Promise<{ id: number; label: string; source_type: string; offline_collection_id: string }> {
-    return request(OfflineSyncController.syncPhysicalSource(caseNumber).url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-    });
-}
-
+/**
+ * Syncs one offline-collected evidence item as an unassigned master
+ * record — the same "secure now, complete details later" path as Quick
+ * Ingest. No case, physical source, or evidence type is sent here.
+ */
 export interface SyncEvidencePayload {
     offline_collection_id: string;
-    physical_source_id: number | null;
-    title: string;
     description: string | null;
-    evidence_type: string;
     client_sha256: string;
     collected_at: string;
     collected_timezone: string;
@@ -81,24 +72,33 @@ export interface SyncEvidenceSuccess {
     collected_at: string | null;
 }
 
-export async function syncEvidenceRecord(caseNumber: string, data: SyncEvidencePayload): Promise<SyncEvidenceSuccess> {
+export async function syncEvidenceRecord(data: SyncEvidencePayload): Promise<SyncEvidenceSuccess> {
     const form = new FormData();
     form.append("offline_collection_id", data.offline_collection_id);
-    if (data.physical_source_id !== null) {
-        form.append("physical_source_id", String(data.physical_source_id));
-    }
-    form.append("title", data.title);
     if (data.description) {
         form.append("description", data.description);
     }
-    form.append("evidence_type", data.evidence_type);
     form.append("client_sha256", data.client_sha256);
     form.append("collected_at", data.collected_at);
     form.append("collected_timezone", data.collected_timezone);
     form.append("file", data.file, data.filename);
 
-    return request(OfflineSyncController.syncEvidence(caseNumber).url, {
+    return request(OfflineSyncController.syncEvidence().url, {
         method: "POST",
         body: form,
     });
+}
+
+/** Whether each of these already-synced evidence numbers has since been assigned to a case. */
+export async function checkEvidenceAssignments(evidenceNumbers: string[]): Promise<Record<string, boolean>> {
+    if (evidenceNumbers.length === 0) {
+        return {};
+    }
+
+    const response = await request<{ assignments: Record<string, boolean> }>(
+        OfflineSyncController.evidenceStatus({ query: { evidence_numbers: evidenceNumbers } }).url,
+        { method: "GET" },
+    );
+
+    return response.assignments;
 }

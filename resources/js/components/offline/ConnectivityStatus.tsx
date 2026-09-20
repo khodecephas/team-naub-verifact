@@ -1,8 +1,8 @@
-import { useOffline } from "@/offline/OfflineProvider";
+import { useConnectivity } from "@/offline/useConnectivity";
 
 /** Small header pill reflecting real browser connectivity (`navigator.onLine`), not a decorative placeholder. */
 export function ConnectivityStatus() {
-    const { isOnline } = useOffline();
+    const isOnline = useConnectivity();
 
     return (
         <span

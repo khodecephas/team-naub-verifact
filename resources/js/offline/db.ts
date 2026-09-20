@@ -1,8 +1,4 @@
-import type {
-    OfflineBootstrapCache,
-    OfflineEvidenceRecord,
-    OfflinePhysicalSourceRecord,
-} from "@/types/offline";
+import type { OfflineBootstrapCache, OfflineEvidenceRecord } from "@/types/offline";
 
 /**
  * Raw IndexedDB access for the offline-collection queue. Deliberately not
@@ -15,7 +11,7 @@ import type {
  * offline mode README note in PendingSync for that documented limitation.
  */
 const DB_NAME = "h1-offline-evidence";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const EVIDENCE_STORE = "evidence";
 const PHYSICAL_SOURCE_STORE = "physicalSources";
 const BOOTSTRAP_STORE = "bootstrap";
@@ -38,9 +34,11 @@ function openDb(): Promise<IDBDatabase> {
                 store.createIndex("ownerUserId", "ownerUserId");
             }
 
-            if (!db.objectStoreNames.contains(PHYSICAL_SOURCE_STORE)) {
-                const store = db.createObjectStore(PHYSICAL_SOURCE_STORE, { keyPath: "localId" });
-                store.createIndex("ownerUserId", "ownerUserId");
+            // Removed in v2: evidence capture no longer depends on a
+            // pre-synced physical source (case/source assignment happens
+            // after sync, from the evidence record itself).
+            if (db.objectStoreNames.contains(PHYSICAL_SOURCE_STORE)) {
+                db.deleteObjectStore(PHYSICAL_SOURCE_STORE);
             }
 
             if (!db.objectStoreNames.contains(BOOTSTRAP_STORE)) {
@@ -101,14 +99,6 @@ export function getAllEvidenceRecords(ownerUserId: number): Promise<OfflineEvide
 
 export function deleteEvidenceRecord(localId: string): Promise<void> {
     return runTransaction(EVIDENCE_STORE, "readwrite", (store) => store.delete(localId)).then(() => undefined);
-}
-
-export function putPhysicalSourceRecord(record: OfflinePhysicalSourceRecord): Promise<void> {
-    return runTransaction(PHYSICAL_SOURCE_STORE, "readwrite", (store) => store.put(record)).then(() => undefined);
-}
-
-export function getAllPhysicalSourceRecords(ownerUserId: number): Promise<OfflinePhysicalSourceRecord[]> {
-    return getAllByOwner<OfflinePhysicalSourceRecord>(PHYSICAL_SOURCE_STORE, ownerUserId);
 }
 
 export function putBootstrapCache(cache: OfflineBootstrapCache): Promise<void> {
