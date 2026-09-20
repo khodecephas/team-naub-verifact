@@ -10,21 +10,6 @@ use App\Models\User;
 class EvidencePolicy
 {
     /**
-     * Roles allowed to register evidence, subject to case access below.
-     */
-    private const REGISTRANT_ROLES = [
-        UserRole::CASE_MANAGER,
-        UserRole::INVESTIGATOR,
-        UserRole::EVIDENCE_CUSTODIAN,
-    ];
-
-    private const VERIFICATION_ROLES = [
-        UserRole::CASE_MANAGER,
-        UserRole::EVIDENCE_CUSTODIAN,
-        UserRole::FORENSIC_EXAMINER,
-    ];
-
-    /**
      * Every role can list evidence — results are scoped elsewhere by what
      * cases the user can actually see.
      */
@@ -39,8 +24,7 @@ class EvidencePolicy
     public function view(User $user, Evidence $evidence): bool
     {
         if ($evidence->case === null) {
-            return in_array($user->role, [UserRole::ADMINISTRATOR, UserRole::AUDITOR], true)
-                || $user->id === $evidence->registered_by;
+            return $user->can('records.view-any') || $user->id === $evidence->registered_by;
         }
 
         return $this->hasCaseAccess($user, $evidence->case);
@@ -48,12 +32,12 @@ class EvidencePolicy
 
     /**
      * Coarse-grained check for whether this user's role can ever register
-     * evidence at all, independent of any specific case.
+     * evidence at all, independent of any specific case. Which roles hold
+     * the `evidence.register` permission is configured via Spatie.
      */
     public function create(User $user): bool
     {
-        return $user->role === UserRole::ADMINISTRATOR
-            || in_array($user->role, self::REGISTRANT_ROLES, true);
+        return $user->can('evidence.register');
     }
 
     /**
@@ -62,15 +46,7 @@ class EvidencePolicy
      */
     public function register(User $user, CaseFile $case): bool
     {
-        if ($user->role === UserRole::ADMINISTRATOR) {
-            return true;
-        }
-
-        if (! in_array($user->role, self::REGISTRANT_ROLES, true)) {
-            return false;
-        }
-
-        return $this->hasCaseAccess($user, $case);
+        return $user->can('evidence.register') && $this->hasCaseAccess($user, $case);
     }
 
     public function viewMaster(User $user, Evidence $evidence): bool
@@ -80,18 +56,17 @@ class EvidencePolicy
 
     public function verify(User $user, Evidence $evidence): bool
     {
-        return $this->hasOperationalAccess($user, $evidence, self::VERIFICATION_ROLES);
+        return $this->hasOperationalAccess($user, $evidence, 'evidence.verify');
     }
 
     public function verifyAny(User $user): bool
     {
-        return $user->role === UserRole::ADMINISTRATOR
-            || in_array($user->role, self::VERIFICATION_ROLES, true);
+        return $user->can('evidence.verify');
     }
 
     public function issueWorkingCopy(User $user, Evidence $evidence): bool
     {
-        return $this->hasOperationalAccess($user, $evidence, self::VERIFICATION_ROLES);
+        return $this->hasOperationalAccess($user, $evidence, 'evidence.verify');
     }
 
     /** Case members may request custody when someone else currently holds it. */
@@ -136,20 +111,13 @@ class EvidencePolicy
         }
 
         return $user->role === UserRole::ADMINISTRATOR
-            || ($user->id === $evidence->registered_by
-                && in_array($user->role, self::REGISTRANT_ROLES, true));
+            || ($user->id === $evidence->registered_by && $user->can('evidence.register'));
     }
 
-    /**
-     * @param  array<int, string>  $allowedRoles
-     */
-    private function hasOperationalAccess(User $user, Evidence $evidence, array $allowedRoles): bool
+    /** Whether this user's role holds the given Spatie permission for this evidence's case (or its own registration, if unassigned). */
+    private function hasOperationalAccess(User $user, Evidence $evidence, string $permission): bool
     {
-        if ($user->role === UserRole::ADMINISTRATOR) {
-            return true;
-        }
-
-        if (! in_array($user->role, $allowedRoles, true)) {
+        if (! $user->can($permission)) {
             return false;
         }
 
@@ -159,12 +127,13 @@ class EvidencePolicy
     }
 
     /**
-     * Administrators and auditors see every case; everyone else needs to be
-     * the creator, the case manager, or a case_assignments member.
+     * Administrators and auditors see every case (via `records.view-any`);
+     * everyone else needs to be the creator, the case manager, or a
+     * case_assignments member.
      */
     private function hasCaseAccess(User $user, CaseFile $case): bool
     {
-        if (in_array($user->role, [UserRole::ADMINISTRATOR, UserRole::AUDITOR], true)) {
+        if ($user->can('records.view-any')) {
             return true;
         }
 

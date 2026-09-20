@@ -1,15 +1,26 @@
+import CaseController from '@/actions/App/Http/Controllers/CaseController';
 import EvidenceController from '@/actions/App/Http/Controllers/EvidenceController';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Panel, PanelHeader } from '@/components/ui/panel';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { useNotificationDialog } from '@/components/notifications/NotificationDialogProvider';
 import {
+    AssignableUser,
     CaseDetail,
     CaseIntegritySummary,
     CasePersonnel,
     CaseTimelineEntry,
 } from '@/types/case';
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
+import { FormEvent, useState } from 'react';
 
 interface CaseOverviewProps {
     caseFile: CaseDetail;
@@ -19,6 +30,102 @@ interface CaseOverviewProps {
     evidenceCount: number;
     physicalSourceCount: number;
     canRegisterEvidence: boolean;
+    canManageMembers: boolean;
+    assignableUsers: AssignableUser[];
+    caseAssignmentRoles: string[];
+}
+
+function formatCaseRole(role: string): string {
+    return role
+        .toLowerCase()
+        .split('_')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+}
+
+function AddMemberDialog({
+    open,
+    onOpenChange,
+    caseNumber,
+    assignableUsers,
+    caseAssignmentRoles,
+}: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    caseNumber: string;
+    assignableUsers: AssignableUser[];
+    caseAssignmentRoles: string[];
+}) {
+    const [userId, setUserId] = useState(String(assignableUsers[0]?.id ?? ''));
+    const [roleOnCase, setRoleOnCase] = useState(caseAssignmentRoles[0] ?? '');
+    const [processing, setProcessing] = useState(false);
+
+    const submit = (event: FormEvent) => {
+        event.preventDefault();
+        router.post(
+            CaseController.storeMember(caseNumber).url,
+            { user_id: userId, role_on_case: roleOnCase },
+            {
+                preserveScroll: true,
+                onStart: () => setProcessing(true),
+                onFinish: () => setProcessing(false),
+                onSuccess: () => onOpenChange(false),
+            },
+        );
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Add a case member</DialogTitle>
+                    <DialogDescription>Grant a user a role on this specific case.</DialogDescription>
+                </DialogHeader>
+                <form onSubmit={submit}>
+                    <div className="grid gap-4 p-5">
+                        <label className="grid gap-1.5 text-xs font-semibold text-slate-700">
+                            User
+                            <select
+                                value={userId}
+                                onChange={(event) => setUserId(event.target.value)}
+                                required
+                                className="h-10 rounded-md border-slate-300 text-sm font-normal"
+                            >
+                                {assignableUsers.map((user) => (
+                                    <option key={user.id} value={user.id}>
+                                        {user.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                        <label className="grid gap-1.5 text-xs font-semibold text-slate-700">
+                            Case role
+                            <select
+                                value={roleOnCase}
+                                onChange={(event) => setRoleOnCase(event.target.value)}
+                                required
+                                className="h-10 rounded-md border-slate-300 text-sm font-normal"
+                            >
+                                {caseAssignmentRoles.map((role) => (
+                                    <option key={role} value={role}>
+                                        {formatCaseRole(role)}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                    </div>
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                            Cancel
+                        </Button>
+                        <Button type="submit" disabled={processing || !userId}>
+                            {processing ? 'Adding…' : 'Add member'}
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
 }
 
 const INVESTIGATION_STAGES = [
@@ -67,10 +174,33 @@ export function CaseOverview({
     evidenceCount,
     physicalSourceCount,
     canRegisterEvidence,
+    canManageMembers,
+    assignableUsers,
+    caseAssignmentRoles,
 }: CaseOverviewProps) {
-    const { notify } = useNotificationDialog();
+    const { confirm } = useNotificationDialog();
+    const [addMemberOpen, setAddMemberOpen] = useState(false);
     const completedStages = [Boolean(caseFile.opened_at), evidenceCount > 0, false, false, false];
     const attentionCount = integrity.verification_required + integrity.integrity_failure;
+
+    const removeMember = async (person: CasePersonnel) => {
+        if (person.assignment_id === null) {
+            return;
+        }
+
+        const confirmed = await confirm({
+            title: `Remove ${person.name} from this case?`,
+            message: `They will lose their "${person.case_role}" role on ${caseFile.case_number}.`,
+            confirmLabel: 'Remove member',
+            tone: 'warning',
+        });
+
+        if (confirmed) {
+            router.delete(CaseController.destroyMember({ caseFile: caseFile.case_number, assignment: person.assignment_id }).url, {
+                preserveScroll: true,
+            });
+        }
+    };
 
     return (
         <div className="grid gap-5 xl:grid-cols-12">
@@ -173,17 +303,14 @@ export function CaseOverview({
                         title="Assigned personnel"
                         description={`${personnel.length} case assignment${personnel.length === 1 ? '' : 's'}`}
                         action={
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => notify({
-                                    title: 'Personnel management',
-                                    message: 'The current case roster is shown below. Additional assignments must be added by an administrator while role management is being completed.',
-                                    tone: 'info',
-                                })}
-                            >
-                                Manage
-                            </Button>
+                            canManageMembers ? (
+                                <Button size="sm" variant="outline" onClick={() => setAddMemberOpen(true)}>
+                                    <span aria-hidden="true" className="material-symbols-outlined text-[16px]">
+                                        person_add
+                                    </span>
+                                    Add member
+                                </Button>
+                            ) : undefined
                         }
                     />
                     <div className="flex flex-col divide-y divide-slate-100 px-5">
@@ -209,13 +336,27 @@ export function CaseOverview({
                                         </p>
                                     </div>
                                 </div>
-                                <span
-                                    aria-label="Identity key verification is not available"
-                                    title="Identity key verification will be available in a later release"
-                                    className="material-symbols-outlined text-[18px] text-slate-300"
-                                >
-                                    verified_user
-                                </span>
+                                {canManageMembers && person.assignment_id !== null ? (
+                                    <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        title={`Remove ${person.name} from this case`}
+                                        aria-label={`Remove ${person.name} from this case`}
+                                        onClick={() => void removeMember(person)}
+                                    >
+                                        <span aria-hidden="true" className="material-symbols-outlined text-[18px] text-slate-400">
+                                            person_remove
+                                        </span>
+                                    </Button>
+                                ) : (
+                                    <span
+                                        aria-label="Identity key verification is not available"
+                                        title="Identity key verification will be available in a later release"
+                                        className="material-symbols-outlined text-[18px] text-slate-300"
+                                    >
+                                        verified_user
+                                    </span>
+                                )}
                             </div>
                         ))}
 
@@ -226,6 +367,16 @@ export function CaseOverview({
                         ) : null}
                     </div>
                 </Panel>
+
+                {canManageMembers ? (
+                    <AddMemberDialog
+                        open={addMemberOpen}
+                        onOpenChange={setAddMemberOpen}
+                        caseNumber={caseFile.case_number}
+                        assignableUsers={assignableUsers}
+                        caseAssignmentRoles={caseAssignmentRoles}
+                    />
+                ) : null}
 
                 <Panel>
                     <PanelHeader

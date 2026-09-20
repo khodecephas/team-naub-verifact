@@ -10,11 +10,6 @@ use App\Models\User;
 
 class ReportPolicy
 {
-    private const CREATOR_ROLES = [
-        UserRole::CASE_MANAGER, UserRole::INVESTIGATOR,
-        UserRole::EVIDENCE_CUSTODIAN, UserRole::FORENSIC_EXAMINER,
-    ];
-
     public function viewAny(User $user): bool
     {
         return true;
@@ -25,12 +20,17 @@ class ReportPolicy
         return (new CaseFilePolicy)->view($user, $report->case);
     }
 
+    /**
+     * Which roles may create reports at all is configured via the
+     * `reports.create` Spatie permission; the case must still be visible
+     * to the user.
+     */
     public function create(User $user, ?CaseFile $case = null): bool
     {
         if ($user->role === UserRole::ADMINISTRATOR) {
             return true;
         }
-        if (! in_array($user->role, self::CREATOR_ROLES, true) || $case === null) {
+        if (! $user->can('reports.create') || $case === null) {
             return false;
         }
 

@@ -30,11 +30,19 @@ export interface CaseDetail {
 
 export interface CasePersonnel {
     id: number;
+    /** Null for the case-manager row, which isn't a removable CaseAssignment. */
+    assignment_id: number | null;
     name: string;
     system_role: string;
     case_role: string;
     assigned_at: string | null;
     assigned_by: string | null;
+}
+
+export interface AssignableUser {
+    id: number;
+    name: string;
+    role: string;
 }
 
 export interface PhysicalSourceSummary {

@@ -15,6 +15,7 @@ import { useNotificationDialog } from "@/components/notifications/NotificationDi
 import { useCaseIntegrityCheck } from "@/hooks/use-case-integrity-check";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import {
+    AssignableUser,
     CaseCustody,
     CaseDetail,
     CaseFindings,
@@ -42,6 +43,9 @@ interface ShowProps {
     canCreateReport: boolean;
     findings: CaseFindings;
     canRecordFinding: boolean;
+    canManageMembers: boolean;
+    assignableUsers: AssignableUser[];
+    caseAssignmentRoles: string[];
     initialTab: CaseTab;
 }
 
@@ -100,6 +104,9 @@ export default function Show({
     canCreateReport,
     findings,
     canRecordFinding,
+    canManageMembers,
+    assignableUsers,
+    caseAssignmentRoles,
     initialTab,
 }: ShowProps) {
     const [activeTab, setActiveTab] = useState<CaseTab>(initialTab);
@@ -278,6 +285,9 @@ export default function Show({
                         evidenceCount={evidence.length}
                         physicalSourceCount={physicalSources.length}
                         canRegisterEvidence={canRegisterEvidence}
+                        canManageMembers={canManageMembers}
+                        assignableUsers={assignableUsers}
+                        caseAssignmentRoles={caseAssignmentRoles}
                     />
                 ) : activeTab === "custody" ? (
                     <CaseCustodyRegister

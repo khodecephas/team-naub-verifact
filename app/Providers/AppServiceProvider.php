@@ -10,6 +10,7 @@ use App\Models\EvidenceDerivative;
 use App\Models\Finding;
 use App\Models\PhysicalSource;
 use App\Models\Report;
+use App\Models\User;
 use App\Policies\CaseFilePolicy;
 use App\Policies\CustodyRequestPolicy;
 use App\Policies\EvidenceDerivativePolicy;
@@ -65,6 +66,8 @@ class AppServiceProvider extends ServiceProvider
             'evidence' => Evidence::class,
             'evidence_derivative' => EvidenceDerivative::class,
             'physical_source' => PhysicalSource::class,
+            // Required by Spatie's polymorphic model_has_roles/model_has_permissions tables.
+            'user' => User::class,
         ]);
     }
 }

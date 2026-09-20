@@ -29,14 +29,24 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user,
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
+            ],
+            // Drives which nav items render — the routes themselves are the
+            // real enforcement (each controller calls Gate::authorize on
+            // the same permissions), this just avoids showing a link that
+            // would 403.
+            'can' => [
+                'manageUsers' => $user?->can('users.manage') ?? false,
+                'manageRoles' => $user?->can('roles.manage') ?? false,
             ],
         ];
     }

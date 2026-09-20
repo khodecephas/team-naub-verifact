@@ -18,12 +18,14 @@ class CaseFilePolicy
     }
 
     /**
-     * Administrators and auditors see every case; everyone else needs to be
-     * the creator, the case manager, or a case_assignments member.
+     * Administrators and auditors see every case (via the `records.view-any`
+     * Spatie permission — see database/migrations/..._seed_roles_and_permissions.php);
+     * everyone else needs to be the creator, the case manager, or a
+     * case_assignments member.
      */
     public function view(User $user, CaseFile $case): bool
     {
-        if (in_array($user->role, [UserRole::ADMINISTRATOR, UserRole::AUDITOR], true)) {
+        if ($user->can('records.view-any')) {
             return true;
         }
 
@@ -33,11 +35,12 @@ class CaseFilePolicy
     }
 
     /**
-     * Only administrators and case managers may open new cases.
+     * Which roles may open new cases is configured via the `cases.create`
+     * Spatie permission.
      */
     public function create(User $user): bool
     {
-        return in_array($user->role, [UserRole::ADMINISTRATOR, UserRole::CASE_MANAGER], true);
+        return $user->can('cases.create');
     }
 
     /**

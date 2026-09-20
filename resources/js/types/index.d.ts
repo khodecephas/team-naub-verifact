@@ -16,4 +16,8 @@ export type PageProps<
         success: string | null;
         error: string | null;
     };
+    can: {
+        manageUsers: boolean;
+        manageRoles: boolean;
+    };
 };

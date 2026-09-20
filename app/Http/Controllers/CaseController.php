@@ -2,23 +2,28 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\CaseAssignmentRole;
 use App\Enums\CaseStatus;
 use App\Enums\IdentifierScope;
 use App\Enums\IntegrityStatus;
 use App\Enums\ReportStatus;
 use App\Http\Requests\CaseStoreRequest;
+use App\Http\Requests\StoreCaseMemberRequest;
 use App\Http\Resources\CaseSummaryResource;
 use App\Http\Resources\EvidenceResource;
+use App\Models\CaseAssignment;
 use App\Models\CaseFile;
 use App\Models\Evidence;
 use App\Models\EvidenceCustodyEvent;
 use App\Models\Finding;
 use App\Models\PhysicalSource;
 use App\Models\Report;
+use App\Models\User;
 use App\Services\EvidenceCustodyService;
 use App\Services\FindingService;
 use App\Services\IdentifierService;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -223,10 +228,46 @@ class CaseController extends Controller
             'canCreateReport' => Gate::allows('create', [Report::class, $caseFile]),
             'findings' => $this->findings($caseFile),
             'canRecordFinding' => Gate::allows('record', [Finding::class, $caseFile]),
+            'canManageMembers' => Gate::allows('assignUsers', $caseFile),
+            'assignableUsers' => Gate::allows('assignUsers', $caseFile)
+                ? User::query()->orderBy('name')->get(['id', 'name', 'role'])
+                : [],
+            'caseAssignmentRoles' => CaseAssignmentRole::getValues(),
             'initialTab' => in_array($request->string('tab')->toString(), ['overview', 'evidence', 'custody', 'reports', 'findings'], true)
                 ? $request->string('tab')->toString()
                 : 'overview',
         ]);
+    }
+
+    /** Add a user to this case's roster with a case-specific role. */
+    public function storeMember(StoreCaseMemberRequest $request, CaseFile $caseFile): RedirectResponse
+    {
+        $this->authorize('assignUsers', $caseFile);
+
+        try {
+            CaseAssignment::create([
+                'case_id' => $caseFile->id,
+                'user_id' => $request->integer('user_id'),
+                'role_on_case' => $request->string('role_on_case')->toString(),
+                'assigned_by' => $request->user()->id,
+                'assigned_at' => now(),
+            ]);
+        } catch (QueryException) {
+            return back()->with('error', 'That user already holds this role on the case.');
+        }
+
+        return back()->with('success', 'Case member added.');
+    }
+
+    /** Remove a user from this case's roster. The case manager itself is not a removable assignment. */
+    public function destroyMember(CaseFile $caseFile, CaseAssignment $assignment): RedirectResponse
+    {
+        $this->authorize('assignUsers', $caseFile);
+        abort_unless($assignment->case_id === $caseFile->id, 404);
+
+        $assignment->delete();
+
+        return back()->with('success', 'Case member removed.');
     }
 
     /**
@@ -364,6 +405,7 @@ class CaseController extends Controller
         if ($caseFile->caseManager) {
             $people->push([
                 'id' => $caseFile->caseManager->id,
+                'assignment_id' => null,
                 'name' => $caseFile->caseManager->name,
                 'system_role' => ucwords(strtolower(str_replace('_', ' ', $caseFile->caseManager->role))),
                 'case_role' => 'Case Manager',
@@ -379,6 +421,7 @@ class CaseController extends Controller
 
             $people->push([
                 'id' => $assignment->user->id,
+                'assignment_id' => $assignment->id,
                 'name' => $assignment->user->name,
                 'system_role' => ucwords(strtolower(str_replace('_', ' ', $assignment->user->role))),
                 'case_role' => ucwords(strtolower(str_replace('_', ' ', $assignment->role_on_case))),

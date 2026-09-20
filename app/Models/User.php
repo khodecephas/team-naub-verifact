@@ -11,13 +11,33 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Traits\HasRoles;
 
 #[Fillable(['name', 'email', 'password', 'role'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasRoles;
+
+    protected $guard_name = 'web';
+
+    /**
+     * Keeps this user's Spatie role assignment in step with the `role`
+     * column — the column stays the single place application code reads
+     * "what is this user's role" (display, factories, existing queries),
+     * while the actual role → permission mapping now lives in Spatie's
+     * tables and is what every policy check below reads. Skips the sync
+     * (and its query) when the role hasn't actually changed.
+     */
+    protected static function booted(): void
+    {
+        static::saved(function (User $user) {
+            if ($user->role && $user->getRoleNames()->first() !== $user->role) {
+                $user->syncRoles([$user->role]);
+            }
+        });
+    }
 
     /**
      * Get the attributes that should be cast.

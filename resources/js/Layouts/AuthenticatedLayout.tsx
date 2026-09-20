@@ -7,7 +7,9 @@ import EvidenceVerificationComparisonController from "@/actions/App/Http/Control
 import OfflineController from "@/actions/App/Http/Controllers/OfflineController";
 import ProfileController from "@/actions/App/Http/Controllers/ProfileController";
 import ReportController from "@/actions/App/Http/Controllers/ReportController";
+import RoleController from "@/actions/App/Http/Controllers/RoleController";
 import SearchController from "@/actions/App/Http/Controllers/SearchController";
+import UserController from "@/actions/App/Http/Controllers/UserController";
 import ApplicationLogo from "@/Components/ApplicationLogo";
 import Dropdown from "@/Components/Dropdown";
 import { ConnectivityStatus } from "@/components/offline/ConnectivityStatus";
@@ -27,7 +29,7 @@ interface NavigationItem {
     icon: string;
 }
 
-const navigationItems: NavigationItem[] = [
+const baseNavigationItems: NavigationItem[] = [
     {
         label: "Dashboard",
         href: DashboardController.index().url,
@@ -70,9 +72,11 @@ function formatRole(role: string): string {
 }
 
 function Navigation({
+    items,
     currentPath,
     mobile = false,
 }: {
+    items: NavigationItem[];
     currentPath: string;
     mobile?: boolean;
 }) {
@@ -85,7 +89,7 @@ function Navigation({
                     : "hidden h-full items-stretch lg:flex"
             }
         >
-            {navigationItems.map((item) => {
+            {items.map((item) => {
                 const isActive = item.href
                     ? currentPath === item.href ||
                       currentPath.startsWith(`${item.href}/`)
@@ -219,8 +223,13 @@ export default function AuthenticatedLayout({
     header,
     children,
 }: PropsWithChildren<{ header?: ReactNode }>) {
-    const { auth } = usePage<PageProps>().props;
+    const { auth, can } = usePage<PageProps>().props;
     const currentPath = usePage().url.split("?")[0];
+    const navigationItems: NavigationItem[] = [
+        ...baseNavigationItems,
+        ...(can.manageUsers ? [{ label: "Users", href: UserController.index().url, icon: "group" }] : []),
+        ...(can.manageRoles ? [{ label: "Roles", href: RoleController.index().url, icon: "admin_panel_settings" }] : []),
+    ];
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [search, setSearch] = useState("");
     const { notify } = useNotificationDialog();
@@ -279,7 +288,7 @@ export default function AuthenticatedLayout({
                             </span>
                         </Link>
                         <div className="h-full flex-1">
-                            <Navigation currentPath={currentPath} />
+                            <Navigation items={navigationItems} currentPath={currentPath} />
                         </div>
                         <div className="flex shrink-0 items-center gap-2">
                             <form
@@ -342,7 +351,7 @@ export default function AuthenticatedLayout({
                     </div>
                     {mobileMenuOpen && (
                         <div className="border-t border-slate-700 lg:hidden">
-                            <Navigation currentPath={currentPath} mobile />
+                            <Navigation items={navigationItems} currentPath={currentPath} mobile />
                         </div>
                     )}
                 </header>

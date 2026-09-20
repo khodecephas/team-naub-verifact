@@ -12,7 +12,9 @@ use App\Http\Controllers\OfflineController;
 use App\Http\Controllers\OfflineSyncController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -26,6 +28,24 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 Route::middleware('auth')->group(function () {
     Route::get('/search', [SearchController::class, 'index'])->name('search.index');
     Route::get('/audit', [AuditController::class, 'index'])->name('audit.index');
+
+    /*
+        Users & Roles (admin-provisioned only — see UserController's docblock)
+    */
+    Route::controller(UserController::class)->prefix('users')->name('users.')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/create', 'create')->name('create');
+        Route::post('/', 'store')->name('store');
+        Route::get('/{user}/edit', 'edit')->name('edit');
+        Route::put('/{user}', 'update')->name('update');
+    });
+
+    Route::controller(RoleController::class)->prefix('roles')->name('roles.')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('/', 'store')->name('store');
+        Route::patch('/{role}', 'update')->name('update');
+        Route::delete('/{role}', 'destroy')->name('destroy');
+    });
 
     /*
         Profile
@@ -46,6 +66,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/cases', 'store')->name('cases.store');
         Route::get('/cases/{caseFile}', 'show')->name('cases.show');
         Route::post('/cases/{caseFile}/archive', 'archive')->name('cases.archive');
+        Route::post('/cases/{caseFile}/members', 'storeMember')->name('cases.members.store');
+        Route::delete('/cases/{caseFile}/members/{assignment}', 'destroyMember')->name('cases.members.destroy');
     });
 
     Route::post('/cases/{caseFile}/integrity-check', [CaseIntegrityController::class, 'verify'])
